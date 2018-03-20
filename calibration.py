@@ -16,13 +16,13 @@ class Calibration:
     board = cv2.aruco.CharucoBoard_create(3,3,0.025,0.0125, dictionary)
     barbell_marker = cv2.aruco.drawMarker(dictionary, 13, 500)
     marker_length = 0.082
-    pkl_file = 'calibration_matrix.pkl'
+    pkl_file = 'calibration/calibration_matrix.pkl'
     
     def __init__(self):
         retval, self.cameraMatrix, self.distCoeffs, self.rvecs, self.tvecs = self.get_saved_calibration_matrix()        
         
     # dumps calibration matrix to pickle file
-    def calc_and_save_calibration_matrix(self, boards_path='/boards', out_pkl_file=pkl_file):
+    def calc_and_save_calibration_matrix(self, boards_path='/calibration/boards', out_pkl_file=pkl_file):
         if (out_pkl_file != self.pkl_file):
             self.pkl_file = out_pkl_file
         images = glob.glob(boards_path + '/*.jpg')
