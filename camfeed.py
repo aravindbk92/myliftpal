@@ -4,7 +4,8 @@ import cv2
 import numpy as np
 import sys
 import threading
-import urllib2
+from urllib.request import urlopen
+import urllib
 from socket import error as SocketError
 
 '''
@@ -29,39 +30,20 @@ acf.release()
 cv2.destroyAllWindows()
 '''
 class AndroidCamFeed:
-    __bytes=''
+    __bytes=b''
     __stream = None
     __isOpen = False
     __feed = None
-    __bytes = ''
     __noStreamCount = 1
     __loadCode = cv2.IMREAD_COLOR if sys.version_info[0] > 2 \
                                     else cv2.CV_LOAD_IMAGE_COLOR
     def __init__(self, host):
         self.hoststr = 'http://' + host + '/video'
         try:
-            AndroidCamFeed.__stream = urllib2.urlopen(self.hoststr, timeout = 3)
-            And    ## Set host
-    host = sys.argv[1]
-    cv2.namedWindow('feed', cv2.WINDOW_NORMAL)
-
-    ## Create new AndroidCamFeed instance
-    acf = AndroidCamFeed(host)
-
-    ## While camera is open
-    while acf.isOpened():
-        ## Read frame
-        ret, frame = acf.read()
-        if ret:
-            cv2.imshow('feed', frame)
-        if cv2.waitKey(1) == ord('q'):
-            break
-
-    ## Must Release ACF instance
-    acf.release()
-    cv2.destroyAllWindows()roidCamFeed.__isOpen = True
-        except (SocketError, urllib2.URLError) as err:
-            print "Failed to connect to stream. \nError: " + str(err)
+            AndroidCamFeed.__stream = urlopen(self.hoststr, timeout = 3)
+            AndroidCamFeed.__isOpen = True
+        except (SocketError, urllib.URLError) as err:
+            print ("Failed to connect to stream. \nError: " + str(err))
             self.__close()
         t = threading.Thread(target=self.__captureFeed)
         t.start()
@@ -73,8 +55,8 @@ class AndroidCamFeed:
                 self.__noStream()
                 continue
             AndroidCamFeed.__bytes += newbytes
-            self.a = AndroidCamFeed.__bytes.find('\xff\xd8')
-            self.b = AndroidCamFeed.__bytes.find('\xff\xd9')
+            self.a = AndroidCamFeed.__bytes.find(b'\xff\xd8')
+            self.b = AndroidCamFeed.__bytes.find(b'\xff\xd9')
             if self.a != -1 and self.b != -1:
                 self.jpg = AndroidCamFeed.__bytes[self.a : self.b+2]
                 AndroidCamFeed.__bytes = AndroidCamFeed.__bytes[self.b+2 : ]
@@ -91,10 +73,10 @@ class AndroidCamFeed:
         AndroidCamFeed.__noStreamCount += 1
         if AndroidCamFeed.__noStreamCount > 10:
             try:
-                AndroidCamFeed.__stream = urllib2.urlopen(
+                AndroidCamFeed.__stream = urlopen(
                                             self.hoststr, timeout = 3)
-            except (SocketError, urllib2.URLError) as err:
-                print "Failed to connect to stream: Error: " + str(err)
+            except (SocketError, urllib.URLError) as err:
+                print ("Failed to connect to stream: Error: " + str(err))
                 self.__close()
 
     def isOpened(self):
@@ -108,4 +90,3 @@ class AndroidCamFeed:
 
     def release(self):
         self.__close()
-        
