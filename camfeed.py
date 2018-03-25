@@ -9,6 +9,9 @@ import urllib
 from socket import error as SocketError
 
 '''
+REFERENCE: 
+https://github.com/CptFoobar/AndroidCamFeed 
+ 
 USAGE
 ## Set host
 host = 192.168.1.2:8080
