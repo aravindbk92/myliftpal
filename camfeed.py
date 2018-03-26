@@ -45,7 +45,7 @@ class AndroidCamFeed:
         try:
             AndroidCamFeed.__stream = urlopen(self.hoststr, timeout = 3)
             AndroidCamFeed.__isOpen = True
-        except (SocketError, urllib.URLError) as err:
+        except (SocketError, urllib.error.URLError) as err:
             print ("Failed to connect to stream. \nError: " + str(err))
             self.__close()
         t = threading.Thread(target=self.__captureFeed)
@@ -78,7 +78,7 @@ class AndroidCamFeed:
             try:
                 AndroidCamFeed.__stream = urlopen(
                                             self.hoststr, timeout = 3)
-            except (SocketError, urllib.URLError) as err:
+            except (SocketError, urllib.error.URLError) as err:
                 print ("Failed to connect to stream: Error: " + str(err))
                 self.__close()
 

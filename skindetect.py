@@ -5,7 +5,6 @@ __author__ = 'Will Brennan'
 import logging
 import cv2
 import numpy
-
 '''
 REFERENCE: 
 https://github.com/WillBrennan/SkinDetector/tree/master/skin_detector
@@ -16,75 +15,92 @@ img_msk = skin_detector.process(img_col)
 '''
 
 logger = logging.getLogger('main')
+ycrcb_min = [122,158,103]
+ycrcb_max = [134,158,103]
 
+# Returns rectangle coordinates for largest face in image
+def face_detect(img):
+    haar_face_cascade = cv2.CascadeClassifier('data/haarcascade_profileface.xml')
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    faces = haar_face_cascade.detectMultiScale(gray_img, 1.3, 5);
+    
+    area = 0
+    largest_face = []
+    for (x, y, w, h) in faces:
+        if (w*h > area):
+            largest_face = [x, y, w, h]
+            area = w*h
+    return largest_face
 
-def get_hsv_mask(img, debug=False):
+# Returns rectangle coordinates for left eye    
+def eye_detect(img):
+    haar_face_cascade = cv2.CascadeClassifier('data/haarcascade_eye.xml')
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    eyes = haar_face_cascade.detectMultiScale(gray_img, 1.3, 5);
+    
+    return eyes[0]
+
+# Set skin detection threshold from face
+def set_skin_threshold_from_face(img):
+    global ycrcb_min, ycrcb_max
+    patch = get_patch_from_face(img)
+    ycrcb_min, ycrcb_max = get_ycrcb_min_max(patch)
+    
+# Gets patch of skin from under the eyes
+def get_patch_from_face(img):
+    patch_size = 10
+    
+    # Detect face
+    x,y,w,h = face_detect(img)
+    face = img[y:y+h, x:x+w]
+    
+    #Detect eyes
+    x,y,w,h = eye_detect(face)
+    
+    # Set offset to get patch of skin from size of eyes
+    offset = int(3*h/4)
+    
+    # Get a patch below the eyes   
+    x = x+int(3*w/4)
+    y = y+int(h/2)+offset
+
+    patch = face[y:y+patch_size, x:x+patch_size]
+    return patch
+
+# Gets the min and max YCrCb values from an image
+def get_ycrcb_min_max(img):
+    # Convert patch to yCrCb
+    img_ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCR_CB)
+    
+    # Set min and max values of Y, Cr,Cb
+    y, cr, cb = cv2.split(img_ycrcb)
+    ycrcb_min = [numpy.amin(y), numpy.amin(cr), numpy.amin(cb)]
+    ycrcb_max = [numpy.amax(y), numpy.amax(cr), numpy.amax(cb)]
+    
+    return ycrcb_min, ycrcb_max
+    
+def get_ycrcb_mask(img):
     assert isinstance(img, numpy.ndarray), 'image must be a numpy array'
-    assert img.ndim == 3, 'skin detection can only work on color images'
-    logger.debug('getting hsv mask')
+    assert img.ndim == 3, 'skin detection can only work on color images'    
 
-    lower_thresh = numpy.array([0, 50, 0], dtype=numpy.uint8)
-    upper_thresh = numpy.array([120, 150, 255], dtype=numpy.uint8)
-    img_hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-    msk_hsv = cv2.inRange(img_hsv, lower_thresh, upper_thresh)
+    global ycrcb_min, ycrcb_max
+    
+    # Offset for YCrCb values
+    yoffset = 80
+    coffset = 12
+    
+    lower_thresh = numpy.array([ycrcb_min[0]-yoffset, ycrcb_min[1]-coffset, ycrcb_min[2]-coffset], dtype=numpy.uint8)
+    upper_thresh = numpy.array([ycrcb_max[0]+yoffset, ycrcb_max[1]+coffset, ycrcb_max[2]+coffset], dtype=numpy.uint8)
 
-    msk_hsv[msk_hsv < 128] = 0
-    msk_hsv[msk_hsv >= 128] = 1
-
-    if debug:
-        scripts.display('input', img)
-        scripts.display('mask_hsv', msk_hsv)
-
-    return msk_hsv.astype(float)
-
-
-def get_rgb_mask(img, debug=False):
-    assert isinstance(img, numpy.ndarray), 'image must be a numpy array'
-    assert img.ndim == 3, 'skin detection can only work on color images'
-    logger.debug('getting rgb mask')
-
-    lower_thresh = numpy.array([45, 52, 108], dtype=numpy.uint8)
-    upper_thresh = numpy.array([255, 255, 255], dtype=numpy.uint8)
-
-    mask_a = cv2.inRange(img, lower_thresh, upper_thresh)
-    mask_b = 255 * ((img[:, :, 2] - img[:, :, 1]) / 20)
-    mask_c = 255 * ((numpy.max(img, axis=2) - numpy.min(img, axis=2)) / 20)
-    # msk_rgb = cv2.bitwise_and(mask_c, cv2.bitwise_and(mask_a, mask_b))
-    mask_d = numpy.bitwise_and(numpy.uint64(mask_a), numpy.uint64(mask_b))
-    msk_rgb = numpy.bitwise_and(numpy.uint64(mask_c), numpy.uint64(mask_d))
-
-    msk_rgb[msk_rgb < 128] = 0
-    msk_rgb[msk_rgb >= 128] = 1
-
-    if debug:
-        scripts.display('input', img)
-        scripts.display('mask_rgb', msk_rgb)
-
-    return msk_rgb.astype(float)
-
-
-def get_ycrcb_mask(img, debug=False):
-    assert isinstance(img, numpy.ndarray), 'image must be a numpy array'
-    assert img.ndim == 3, 'skin detection can only work on color images'
-    logger.debug('getting ycrcb mask')
-
-    lower_thresh = numpy.array([90, 100, 130], dtype=numpy.uint8)
-    upper_thresh = numpy.array([230, 120, 180], dtype=numpy.uint8)
-
-    img_ycrcb = cv2.cvtColor(img, cv2.COLOR_RGB2YCR_CB)
+    img_ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCR_CB)
     msk_ycrcb = cv2.inRange(img_ycrcb, lower_thresh, upper_thresh)
 
     msk_ycrcb[msk_ycrcb < 128] = 0
     msk_ycrcb[msk_ycrcb >= 128] = 1
 
-    if debug:
-        scripts.display('input', img)
-        scripts.display('mask_ycrcb', msk_ycrcb)
-
     return msk_ycrcb.astype(float)
 
-
-def grab_cut_mask(img_col, mask, debug=False):
+def grab_cut_mask(img_col, mask):
     assert isinstance(img_col, numpy.ndarray), 'image must be a numpy array'
     assert isinstance(mask, numpy.ndarray), 'mask must be a numpy array'
     assert img_col.ndim == 3, 'skin detection can only work on color images'
@@ -95,17 +111,12 @@ def grab_cut_mask(img_col, mask, debug=False):
     dst[dst != 0] = 255
     free = numpy.array(cv2.bitwise_not(dst), dtype=numpy.uint8)
 
-    if debug:
-        scripts.display('not skin', free)
-        scripts.display('grabcut input', mask)
-
     grab_mask = numpy.zeros(mask.shape, dtype=numpy.uint8)
     grab_mask[:, :] = 2
     grab_mask[mask == 255] = 1
     grab_mask[free == 255] = 0
 
     if numpy.unique(grab_mask).tolist() == [0, 1]:
-        logger.debug('conducting grabcut')
         bgdModel = numpy.zeros((1, 65), numpy.float64)
         fgdModel = numpy.zeros((1, 65), numpy.float64)
 
@@ -122,7 +133,6 @@ def grab_cut_mask(img_col, mask, debug=False):
 def closing(mask):
     assert isinstance(mask, numpy.ndarray), 'mask must be a numpy array'
     assert mask.ndim == 2, 'mask must be a greyscale image'
-    logger.debug("closing mask of shape {0}".format(mask.shape))
 
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
@@ -132,25 +142,17 @@ def closing(mask):
     return mask
 
 
-def process(img, thresh=0.5, debug=False):
+def process(img):
     assert isinstance(img, numpy.ndarray), 'image must be a numpy array'
     assert img.ndim == 3, 'skin detection can only work on color images'
-    logger.debug("processing image of shape {0}".format(img.shape))
+    
+    set_skin_threshold_from_face(img)
 
-    mask_hsv = get_hsv_mask(img, debug=debug)
-    mask_rgb = get_rgb_mask(img, debug=debug)
-    mask_ycrcb = get_ycrcb_mask(img, debug=debug)
-
-    n_masks = 3.0
-    mask = (mask_hsv + mask_rgb + mask_ycrcb) / n_masks
-
-    mask[mask < thresh] = 0.0
-    mask[mask >= thresh] = 255.0
-    logger.debug('{0}% of the image is skin'.format(int((100.0 / 255.0) * numpy.sum(mask) / mask.size)))
+    mask = get_ycrcb_mask(img)
 
     mask = mask.astype(numpy.uint8)
 
     mask = closing(mask)
-    mask = grab_cut_mask(img, mask, debug=debug)
+    mask = grab_cut_mask(img, mask)
 
     return mask
