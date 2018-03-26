@@ -21,15 +21,29 @@ class Gestures:
     finger_ct_history=[0,0]
     finger_thresh_l=2.0
     finger_thresh_u=3.8
+    area_threshold = 5000
     
-    # Returns the contour of the leftmost blob (> an area threshold)
-    # This corresponds to the right hand in the skin detection mask
+    # Sets area threshold for hands from information in mask
+    def set_area_threshold(self, mask):
+        im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        largest_area = 0
+        for index, cnt in enumerate(contours):
+            area = cv2.contourArea(cnt)
+            if area > largest_area:
+                largest_area = area
+        
+        self.area_threshold = largest_area/2
+    
+    # Returns the contour of the leftmost and rightmost blob (> an area threshold)
+    # This corresponds to the right hand and left hand respectively
     def find_hand_contour(self,mask):
-        area_threshold = 5000    
         im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         
         leftmost_blob_index = 0
         leftmost_x = 10000
+        rightmost_blob_index = 0
+        rightmost_x = 0
         for index, cnt in enumerate(contours):
             # Find area of contour
             area = cv2.contourArea(cnt)
@@ -38,11 +52,17 @@ class Gestures:
             M = cv2.moments(cnt)
             cx = int(M['m10']/M['m00'])
             
-            if area > area_threshold and cx < leftmost_x:
+            if area > self.area_threshold and cx < leftmost_x:
                 leftmost_blob_index = index
                 leftmost_x = cx
-               
-        return contours[leftmost_blob_index]
+                
+            if area > self.area_threshold and cx > rightmost_x:
+                rightmost_blob_index = index
+                rightmost_x = cx
+        
+        left_hand = contours[leftmost_blob_index]
+        right_hand = contours[rightmost_blob_index]
+        return right_hand, left_hand
     
     # Finds the center of the largest circle inscribed inside the contour
     # This corresponds to the centre of the palm.
@@ -123,10 +143,14 @@ class Gestures:
         return img, gestures[finger_count]
     
     def process(self, frame, mask):
-        hand_contour = self.find_hand_contour(mask)
+        right_hand_contour, left_hand_contour = self.find_hand_contour(mask)
            
-        frame, hand_center, hand_radius = self.get_hand_center(frame,hand_contour)
-        frame, fingers, finger_count = self.mark_fingers(frame, hand_contour, hand_center, hand_radius)
-        frame, gesture = self.find_gesture(frame,finger_count)
+        frame, hand_center, hand_radius = self.get_hand_center(frame, right_hand_contour)
+        frame, fingers, finger_count = self.mark_fingers(frame, right_hand_contour, hand_center, hand_radius)
+        frame, right_gesture = self.find_gesture(frame,finger_count)
         
-        return frame, gesture
+        frame, hand_center, hand_radius = self.get_hand_center(frame, left_hand_contour)
+        frame, fingers, finger_count = self.mark_fingers(frame, left_hand_contour, hand_center, hand_radius)
+        frame, left_gesture = self.find_gesture(frame,finger_count)
+        
+        return frame, right_gesture, left_gesture

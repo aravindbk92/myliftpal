@@ -47,6 +47,7 @@ class SkinDetect:
         patch, success_flag = self.get_patch_from_face(img)
         if (success_flag):
             self.ycrcb_min, self.ycrcb_max = self.get_ycrcb_min_max(patch)
+        return success_flag
         
     # Gets patch of skin from under the eyes
     def get_patch_from_face(self, img):

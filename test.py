@@ -40,7 +40,7 @@ import matplotlib.pyplot as plt
 #gestures = Gestures()
 #
 ## capture loop
-#while True:Gestures
+#while True:
 #    # get frame
 #    ret, frame = camera.read()    
 #         
