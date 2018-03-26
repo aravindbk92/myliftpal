@@ -86,8 +86,8 @@ def get_ycrcb_mask(img):
     global ycrcb_min, ycrcb_max
     
     # Offset for YCrCb values
-    yoffset = 80
-    coffset = 12
+    yoffset = 50
+    coffset = 11
     
     lower_thresh = numpy.array([ycrcb_min[0]-yoffset, ycrcb_min[1]-coffset, ycrcb_min[2]-coffset], dtype=numpy.uint8)
     upper_thresh = numpy.array([ycrcb_max[0]+yoffset, ycrcb_max[1]+coffset, ycrcb_max[2]+coffset], dtype=numpy.uint8)
@@ -145,8 +145,6 @@ def closing(mask):
 def process(img):
     assert isinstance(img, numpy.ndarray), 'image must be a numpy array'
     assert img.ndim == 3, 'skin detection can only work on color images'
-    
-    set_skin_threshold_from_face(img)
 
     mask = get_ycrcb_mask(img)
 
