@@ -46,7 +46,7 @@ class SkinDetect:
     def set_skin_threshold_from_face(self, img):
         patch, success_flag = self.get_patch_from_face(img)
         if (success_flag):
-            SkinDetect.ycrcb_min, SkinDetect.ycrcb_max = self.get_ycrcb_min_max(patch)
+            self.ycrcb_min, self.ycrcb_max = self.get_ycrcb_min_max(patch)
         
     # Gets patch of skin from under the eyes
     def get_patch_from_face(self, img):
@@ -100,8 +100,8 @@ class SkinDetect:
         yoffset = 100
         coffset = 11
         
-        lower_thresh = numpy.array([SkinDetect.ycrcb_min[0]-yoffset, SkinDetect.ycrcb_min[1]-coffset, SkinDetect.ycrcb_min[2]-coffset], dtype=numpy.uint8)
-        upper_thresh = numpy.array([SkinDetect.ycrcb_max[0]+yoffset, SkinDetect.ycrcb_max[1]+coffset, SkinDetect.ycrcb_max[2]+coffset], dtype=numpy.uint8)
+        lower_thresh = numpy.array([self.ycrcb_min[0]-yoffset, self.ycrcb_min[1]-coffset, self.ycrcb_min[2]-coffset], dtype=numpy.uint8)
+        upper_thresh = numpy.array([self.ycrcb_max[0]+yoffset, self.ycrcb_max[1]+coffset, self.ycrcb_max[2]+coffset], dtype=numpy.uint8)
     
         img_ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCR_CB)
         msk_ycrcb = cv2.inRange(img_ycrcb, lower_thresh, upper_thresh)
