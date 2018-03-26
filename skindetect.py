@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-__author__ = 'Will Brennan'
-
 import logging
 import cv2
 import numpy
@@ -26,11 +24,14 @@ def face_detect(img):
     
     area = 0
     largest_face = []
-    for (x, y, w, h) in faces:
-        if (w*h > area):
-            largest_face = [x, y, w, h]
-            area = w*h
-    return largest_face
+    if len(faces) == 0:
+        return largest_face, False
+    else:
+        for (x, y, w, h) in faces:
+            if (w*h > area):
+                largest_face = [x, y, w, h]
+                area = w*h
+    return largest_face, True
 
 # Returns rectangle coordinates for left eye    
 def eye_detect(img):
@@ -38,34 +39,47 @@ def eye_detect(img):
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     eyes = haar_face_cascade.detectMultiScale(gray_img, 1.3, 5);
     
-    return eyes[0]
+    if (len(eyes) == 2):
+        return eyes[0], True
+    else:
+        return [], False
 
 # Set skin detection threshold from face
 def set_skin_threshold_from_face(img):
     global ycrcb_min, ycrcb_max
-    patch = get_patch_from_face(img)
-    ycrcb_min, ycrcb_max = get_ycrcb_min_max(patch)
+    patch, success_flag = get_patch_from_face(img)
+    if (success_flag):
+        ycrcb_min, ycrcb_max = get_ycrcb_min_max(patch)
     
 # Gets patch of skin from under the eyes
 def get_patch_from_face(img):
     patch_size = 10
     
     # Detect face
-    x,y,w,h = face_detect(img)
-    face = img[y:y+h, x:x+w]
+    face, success_flag = face_detect(img)
+    if (success_flag):
+        x,y,w,h = face
     
-    #Detect eyes
-    x,y,w,h = eye_detect(face)
-    
-    # Set offset to get patch of skin from size of eyes
-    offset = int(3*h/4)
-    
-    # Get a patch below the eyes   
-    x = x+int(3*w/4)
-    y = y+int(h/2)+offset
-
-    patch = face[y:y+patch_size, x:x+patch_size]
-    return patch
+        face = img[y:y+h, x:x+w]
+        
+        #Detect eyes
+        eyes, success_flag = eye_detect(face)
+        if (success_flag):
+            x,y,w,h = eyes
+            
+            # Set offset to get patch of skin from size of eyes
+            offset = int(3*h/4)
+            
+            # Get a patch below the eyes   
+            x = x+int(3*w/4)
+            y = y+int(h/2)+offset
+        
+            patch = face[y:y+patch_size, x:x+patch_size]
+            return patch, True
+        else:
+            return [], False    
+    else:
+        return [], False
 
 # Gets the min and max YCrCb values from an image
 def get_ycrcb_min_max(img):
