@@ -24,21 +24,13 @@ class Gestures:
     finger_thresh_u=3.8
     area_threshold = 5000
     face_x = 0
-    
-    AREA_MIN = 5000
+    face_y = 0
+    face_h = 10000
     
     # Sets area threshold for hands from information in mask
-    def set_area_threshold(self, mask):
-        im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        
-        largest_area = self.AREA_MIN
-        for index, cnt in enumerate(contours):
-            area = cv2.contourArea(cnt)
-            if area > largest_area:
-                largest_area = area
-        
-        self.area_threshold = largest_area/4
-        print (self.area_threshold)
+    def set_area_threshold(self, face_coords):
+        self.area_threshold = int((face_coords[2] * face_coords[3])/9);
+
     
     # Returns the contour of the leftmost and rightmost blob (> an area threshold)
     # This corresponds to the right hand and left hand respectively
@@ -46,9 +38,12 @@ class Gestures:
         im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if (face_coords):
             self.face_x = face_coords[0]
+            self.face_y = face_coords[1]
+            self.face_h = face_coords[3]
         
         leftmost_blob_index = -1
         leftmost_x = 10000
+        distance_below_face = 10000
         for index, cnt in enumerate(contours):
             # Find area of contour
             area = cv2.contourArea(cnt)
@@ -57,12 +52,16 @@ class Gestures:
             M = cv2.moments(cnt)
             if M["m00"] != 0:
                 cx = int(M['m10']/M['m00'])
+                cy = int(M['m01']/M['m00'])
             else:
                 cx = 10000
+                cy = 0
             
-            if area > self.area_threshold and cx < leftmost_x and cx < self.face_x:
-                leftmost_blob_index = index
-                leftmost_x = cx
+            if ( area > self.area_threshold and cx < leftmost_x and cx < self.face_x and cy < self.face_y+3*self.face_h and cy > self.face_y-self.face_h):
+                if cy < distance_below_face:
+                    leftmost_blob_index = index
+                    leftmost_x = cx
+                    distance_below_face = cy
         
         hand = None
         if leftmost_blob_index >= 0 and leftmost_blob_index < len(contours):

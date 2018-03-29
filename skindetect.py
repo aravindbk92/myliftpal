@@ -12,23 +12,28 @@ img_msk = skin_detector.process(img_col)
 '''
 class SkinDetect:
     # Lower and upper threshold for detecting skin YCrCb
-    lower_threshold = [1,100,140]
+    lower_threshold = [10,100,140]
     upper_threshold = [230,120,169]
     
     # Offset for YCrCb values
-    yoffset = 100
+    yoffset_u = 50
+    yoffset_l = 150
     coffset = 15
     
     # Ranges of values of YCrCb between which skin color can be present
-    LOWER_LIMIT = [1, 100, 130]
-    UPPER_LIMIT = [230, 120, 180]
+    LOWER_LIMIT = [5, 100, 130]
+    UPPER_LIMIT = [200, 120, 180]
     
     # Returns rectangle coordinates for largest face in image
     def face_detect(self, img):
-        haar_face_cascade = cv2.CascadeClassifier('data/haarcascade_profileface.xml')
-
+        haar_profile_cascade = cv2.CascadeClassifier('data/haarcascade_profileface.xml')
+        haar_face_cascade = cv2.CascadeClassifier('data/haarcascade_frontalface_alt.xml')
+        
         gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        faces = haar_face_cascade.detectMultiScale(gray_img, 1.3, 5);
+        faces = haar_profile_cascade.detectMultiScale(gray_img, 1.3, 5);
+        
+        if (len(faces) == 0):
+            faces = haar_face_cascade.detectMultiScale(gray_img, 1.3, 5);
         
         area = 0
         largest_face = []
@@ -64,10 +69,10 @@ class SkinDetect:
         if (success_flag):            
             ycrcb_min, ycrcb_max = self.get_ycrcb_min_max(patch_ycrcb)
 
-            self.lower_threshold = [max((ycrcb_min[0] - self.yoffset),self.LOWER_LIMIT[0]), 
+            self.lower_threshold = [max((ycrcb_min[0] - self.yoffset_l),self.LOWER_LIMIT[0]), 
                                     max((ycrcb_min[1] - self.coffset),self.LOWER_LIMIT[1]), 
                                     max((ycrcb_min[2] - self.coffset),self.LOWER_LIMIT[2])]
-            self.upper_threshold = [min((ycrcb_max[0] + self.yoffset),self.UPPER_LIMIT[0]), 
+            self.upper_threshold = [min((ycrcb_max[0] + self.yoffset_u),self.UPPER_LIMIT[0]), 
                                     min((ycrcb_max[1] + self.coffset),self.UPPER_LIMIT[1]), 
                                     min((ycrcb_max[2] + self.coffset),self.UPPER_LIMIT[2])]          
             

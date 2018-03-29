@@ -31,15 +31,15 @@ while acf.isOpened():
         mask = skindetect.process(frame)
         
         if (calibration_counter %  calibration_interval == 0):        
-            gestures.set_area_threshold(mask)
+            gestures.set_area_threshold(face_coords)
             calibration_counter=0
         
         calibration_counter+=1
            
         frame, gesture = gestures.process(frame, mask, face_coords)
         
-        mask = cv2.resize(mask, (360, 640))        
-        frame = cv2.resize(frame, (360, 640))
+        mask = cv2.resize(mask, (540, 960))        
+        frame = cv2.resize(frame, (540, 960))
         cv2.imshow('mask', cv2.bitwise_and(frame, frame, mask=mask))
 
     if cv2.waitKey(1) == ord('q'):
