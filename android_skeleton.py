@@ -11,12 +11,8 @@ host = "10.42.0.128:8080"
 
 ## Create new AndroidCamFeed instance
 acf = AndroidCamFeed(host)
-skindetect = SkinDetect()
-gestures = Gestures()
+skeleton_detect = SkeletonDetect()
 
-calibration_counter = 0
-calibration_interval = 30
-face_coords = []
 # capture loop
 while acf.isOpened():
     ## Read frame
