@@ -12,8 +12,8 @@ img_msk = skin_detector.process(img_col)
 '''
 class SkeletonDetect:
     # Lower and upper threshold for detecting skin YCrCb
-    lower_threshold = [30,40,120]
-    upper_threshold = [200,110,145]
+    lower_threshold = [0,40,120]
+    upper_threshold = [255,110,145]
     
              
     def get_ycrcb_mask(self, img):
@@ -22,11 +22,7 @@ class SkeletonDetect:
     
         img_ycrcb = cv2.cvtColor(img, cv2.COLOR_RGB2YCR_CB)
         
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-        y, cr, cb = cv2.split(img_ycrcb)
-        y = clahe.apply(y)
-        img_ycrcb = cv2.merge((y,cr,cb))
-        
+       
         msk_ycrcb = cv2.inRange(img_ycrcb, numpy.array(self.lower_threshold), numpy.array(self.upper_threshold))
     
         return msk_ycrcb    
