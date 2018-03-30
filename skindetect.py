@@ -16,13 +16,17 @@ class SkinDetect:
     upper_threshold = [230,120,169]
     
     # Offset for YCrCb values
+    yoffset_l = 50
     yoffset_u = 50
-    yoffset_l = 150
-    coffset = 15
+    croffset_l = 20
+    croffset_u = 2
+    cyoffset_l = 2
+    cyoffset_u = 20
+
     
     # Ranges of values of YCrCb between which skin color can be present
-    LOWER_LIMIT = [5, 100, 130]
-    UPPER_LIMIT = [200, 120, 180]
+    LOWER_LIMIT = [55, 75, 130]
+    UPPER_LIMIT = [230, 122, 180]
     
     # Returns rectangle coordinates for largest face in image
     def face_detect(self, img):
@@ -70,11 +74,11 @@ class SkinDetect:
             ycrcb_min, ycrcb_max = self.get_ycrcb_min_max(patch_ycrcb)
 
             self.lower_threshold = [max((ycrcb_min[0] - self.yoffset_l),self.LOWER_LIMIT[0]), 
-                                    max((ycrcb_min[1] - self.coffset),self.LOWER_LIMIT[1]), 
-                                    max((ycrcb_min[2] - self.coffset),self.LOWER_LIMIT[2])]
+                                    max((ycrcb_min[1] - self.croffset_l),self.LOWER_LIMIT[1]), 
+                                    max((ycrcb_min[2] - self.cyoffset_l),self.LOWER_LIMIT[2])]
             self.upper_threshold = [min((ycrcb_max[0] + self.yoffset_u),self.UPPER_LIMIT[0]), 
-                                    min((ycrcb_max[1] + self.coffset),self.UPPER_LIMIT[1]), 
-                                    min((ycrcb_max[2] + self.coffset),self.UPPER_LIMIT[2])]          
+                                    min((ycrcb_max[1] + self.croffset_u),self.UPPER_LIMIT[1]), 
+                                    min((ycrcb_max[2] + self.cyoffset_u),self.UPPER_LIMIT[2])]          
             
             print (self.lower_threshold, " ", self.upper_threshold)
         return face_coords, success_flag
@@ -109,7 +113,7 @@ class SkinDetect:
                 offset = int(h/4)
                 
                 # Get a patch below the eyes   
-                x = x+int(3*w/4)
+                x = x+int(w/2)
                 y = y+h+offset
                 
                 ref_x += x 

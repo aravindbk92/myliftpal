@@ -29,7 +29,7 @@ class Gestures:
     
     # Sets area threshold for hands from information in mask
     def set_area_threshold(self, face_coords):
-        self.area_threshold = int((face_coords[2] * face_coords[3])/9);
+        self.area_threshold = int((face_coords[2] * face_coords[3])/16);
 
     
     # Returns the contour of the leftmost and rightmost blob (> an area threshold)
@@ -57,7 +57,7 @@ class Gestures:
                 cx = 10000
                 cy = 0
             
-            if ( area > self.area_threshold and cx < leftmost_x and cx < self.face_x and cy < self.face_y+3*self.face_h and cy > self.face_y-self.face_h):
+            if ( area > self.area_threshold and cx < leftmost_x and cx < self.face_x and cy < self.face_y+2.5*self.face_h and cy > self.face_y-self.face_h):
                 if cy < distance_below_face:
                     leftmost_blob_index = index
                     leftmost_x = cx

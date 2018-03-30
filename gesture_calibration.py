@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+2#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import cv2
 from skindetect import SkinDetect
@@ -22,15 +22,15 @@ face_coords = []
 while acf.isOpened():
     ## Read frame
     ret, frame = acf.read()
-    if ret:        
+    if ret:
         if (calibration_counter % calibration_interval == 0):
             face_coords, success_flag = skindetect.set_skin_threshold_from_face(frame)
+            cv2.imwrite("frame.jpg", frame)
             if (not success_flag):
                 calibration_counter-=1
 
         mask = skindetect.process(frame)
-        cv2.imwrite("frame.jpg", frame)
-        
+                
         if (calibration_counter %  calibration_interval == 0):        
             gestures.set_area_threshold(face_coords)
             calibration_counter=0
