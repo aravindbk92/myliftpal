@@ -12,15 +12,15 @@ img_msk = skin_detector.process(img_col)
 '''
 class SkeletonDetect:
     # Lower and upper threshold for detecting skin YCrCb
-    lower_threshold = [0,40,120]
-    upper_threshold = [255,110,145]
+    lower_threshold = [10, 40, 120]
+    upper_threshold = [225, 125, 133]
     
              
     def get_ycrcb_mask(self, img):
         assert isinstance(img, numpy.ndarray), 'image must be a numpy array'
         assert img.ndim == 3, 'skin detection can only work on color images'
     
-        img_ycrcb = cv2.cvtColor(img, cv2.COLOR_RGB2YCR_CB)
+        img_ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCR_CB)
         
        
         msk_ycrcb = cv2.inRange(img_ycrcb, numpy.array(self.lower_threshold), numpy.array(self.upper_threshold))

@@ -13,6 +13,16 @@ host = "10.42.0.128:8080"
 acf = AndroidCamFeed(host)
 skeleton_detect = SkeletonDetect()
 
+# Handle a mouse click and output the colour under the click point
+def click(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONUP:
+        if not frame is None:
+            hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2YCR_CB)
+            print('HSV: ' + str(hsv_frame[y, x]))
+
+cv2.namedWindow('frame')
+cv2.setMouseCallback('frame', click)
+
 # capture loop
 while acf.isOpened():
     ## Read frame
