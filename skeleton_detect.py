@@ -20,7 +20,7 @@ class SkeletonDetect:
         assert isinstance(img, numpy.ndarray), 'image must be a numpy array'
         assert img.ndim == 3, 'skin detection can only work on color images'
     
-        img_ycrcb = cv2.cvtColor(img, cv2.COLOR_RGB2YCR_CB)
+        img_ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCR_CB)
         
        
         msk_ycrcb = cv2.inRange(img_ycrcb, numpy.array(self.lower_threshold), numpy.array(self.upper_threshold))

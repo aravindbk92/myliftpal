@@ -23,6 +23,7 @@ while acf.isOpened():
         
         mask = cv2.resize(mask, (540, 960))        
         frame = cv2.resize(frame, (540, 960))
+        cv2.imwrite("skeleton.jpg", frame)
         cv2.imshow('mask', cv2.bitwise_and(frame, frame, mask=mask))
 
     if cv2.waitKey(1) == ord('q'):

@@ -12,21 +12,21 @@ img_msk = skin_detector.process(img_col)
 '''
 class SkinDetect:
     # Lower and upper threshold for detecting skin YCrCb
-    lower_threshold = [10,100,140]
-    upper_threshold = [230,120,169]
+    lower_threshold = [1,100,140]
+    upper_threshold = [230,120,160]
     
     # Offset for YCrCb values
-    yoffset_l = 50
-    yoffset_u = 50
-    croffset_l = 20
-    croffset_u = 2
-    cyoffset_l = 2
-    cyoffset_u = 20
+    yoffset_l = 200
+    yoffset_u = 200
+    croffset_l = 10
+    croffset_u = 10
+    cyoffset_l = 10
+    cyoffset_u = 5
 
     
     # Ranges of values of YCrCb between which skin color can be present
-    LOWER_LIMIT = [55, 75, 130]
-    UPPER_LIMIT = [230, 122, 180]
+    LOWER_LIMIT = [1, 90, 140]
+    UPPER_LIMIT = [230, 125, 180]
     
     # Returns rectangle coordinates for largest face in image
     def face_detect(self, img):
@@ -80,7 +80,7 @@ class SkinDetect:
                                     min((ycrcb_max[1] + self.croffset_u),self.UPPER_LIMIT[1]), 
                                     min((ycrcb_max[2] + self.cyoffset_u),self.UPPER_LIMIT[2])]          
             
-            print (self.lower_threshold, " ", self.upper_threshold)
+            #print (ycrcb_min," ", ycrcb_max, " ", self.lower_threshold, " ", self.upper_threshold)
         return face_coords, success_flag
         
     # Gets patch of skin from under the eyes
@@ -159,6 +159,8 @@ class SkinDetect:
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        mask = cv2.dilate(mask,kernel,iterations = 5)
     
         return mask
     

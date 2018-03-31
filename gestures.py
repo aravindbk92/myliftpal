@@ -4,6 +4,7 @@
 import cv2
 import numpy as np
 import traceback
+import math
 '''
 REFERENCE: 
 https://github.com/mahaveerverma/hand-gesture-recognition-opencv
@@ -20,26 +21,23 @@ cv2.imshow('feed', frame)
 class Gestures:
     first_iteration=True
     finger_ct_history=[0,0]
-    finger_thresh_l=2.0
-    finger_thresh_u=3.8
+    finger_thresh_l=0.5
+    finger_thresh_u=1.2
+    distance_between_fingers = 30
     area_threshold = 5000
     face_x = 0
     face_y = 0
     face_h = 10000
+    face_w = 10000
     
     # Sets area threshold for hands from information in mask
-    def set_area_threshold(self, face_coords):
-        self.area_threshold = int((face_coords[2] * face_coords[3])/16);
-
+    def set_thresholds(self, face_coords):
+        self.area_threshold = int((face_coords[2] * face_coords[3])/16)
     
     # Returns the contour of the leftmost and rightmost blob (> an area threshold)
     # This corresponds to the right hand and left hand respectively
     def find_hand_contour(self, frame, mask, face_coords):
         im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        if (face_coords):
-            self.face_x = face_coords[0]
-            self.face_y = face_coords[1]
-            self.face_h = face_coords[3]
         
         leftmost_blob_index = -1
         leftmost_x = 10000
@@ -57,7 +55,7 @@ class Gestures:
                 cx = 10000
                 cy = 0
             
-            if ( area > self.area_threshold and cx < leftmost_x and cx < self.face_x and cy < self.face_y+2.5*self.face_h and cy > self.face_y-self.face_h):
+            if ( area > self.area_threshold and cx < leftmost_x and cx < self.face_x and cy < self.face_y+2*self.face_h and cy > self.face_y-self.face_h):
                 if cy < distance_below_face:
                     leftmost_blob_index = index
                     leftmost_x = cx
@@ -102,7 +100,7 @@ class Gestures:
         if (len(hull)  > 1):
             for i in range(len(hull)):
                 dist = np.sqrt((hull[-i][0][0] - hull[-i+1][0][0])**2 + (hull[-i][0][1] - hull[-i+1][0][1])**2)
-                if (dist>18):
+                if (dist>self.distance_between_fingers):
                     if(j==0):
                         finger=[(hull[-i][0][0],hull[-i][0][1])]
                     else:
@@ -113,7 +111,7 @@ class Gestures:
             i=0
             while(i<temp_len):
                 dist = np.sqrt( (finger[i][0]- cx)**2 + (finger[i][1] - cy)**2)
-                if(dist<self.finger_thresh_l*radius or dist>self.finger_thresh_u*radius or finger[i][1]>cy+radius):
+                if(dist<self.finger_thresh_l*self.face_h or dist>self.finger_thresh_u*self.face_h or finger[i][1]>cy+radius/3):
                     finger.remove((finger[i][0],finger[i][1]))
                     temp_len=temp_len-1
                 else:
@@ -138,33 +136,44 @@ class Gestures:
             self.finger_ct_history[1]=len(finger)
         
             for k in range(len(finger)):
-                cv2.circle(img,finger[k],10,255,2)
-                cv2.line(img,finger[k],(cx,cy),255,2)
+                cv2.circle(img,finger[k],10,(255,255,255),2)
+                cv2.line(img,finger[k],(cx,cy),(255,255,255),2)
             
             return img, finger, finger_count
         
         else:
             return img, [], 0 
         
-    def find_gesture(self, img, finger_count):
-        gestures = ['ZERO', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE']
-        gesture_text="GESTURE: "+gestures[finger_count]
-        cv2.putText(img,gesture_text,(int(0.56*img.shape[1]),int(0.97*img.shape[0])),cv2.FONT_HERSHEY_DUPLEX,1,(0,255,255),1,8)
-        return img, gestures[finger_count]
+    def draw_gesture(self, img, finger_count):
+        gesture_text="NUM: "+ str(finger_count)
+        cv2.putText(img,gesture_text,(int(0.56*img.shape[1]),int(0.97*img.shape[0])),cv2.FONT_HERSHEY_DUPLEX,2,(0,255,255),2,8)
+        return img
     
     def process(self, frame, mask, face_coords):
+        finger_count = -1
+        if (face_coords):
+            self.face_x = face_coords[0]
+            self.face_y = face_coords[1]
+            self.face_w = face_coords[2]
+            self.face_h = face_coords[3]
+            
         try:
             frame, hand_contour = self.find_hand_contour(frame, mask, face_coords)
-        
-            gesture = None
+            
             if hand_contour is not None:
                 frame, hand_center, hand_radius = self.get_hand_center(frame, hand_contour)
+                
+                x = hand_center[0]-self.face_w/2
+                y = hand_center[1]-self.face_h/2
+                hand_mask = mask[y:y+self.face_h/2, x:x+self.face_w/2]
+                cv2.imwrite("hand_mask.jpg", hand_mask)
+                
                 frame, fingers, finger_count = self.mark_fingers(frame, hand_contour, hand_center, hand_radius)
-                frame, right_gesture = self.find_gesture(frame,finger_count)
+                frame = self.draw_gesture(frame,finger_count)
         
         except Exception as e:
             print (e)
             traceback.print_exc()
-            return frame, ""
+            return frame, -1
         
-        return frame, gesture
+        return frame, finger_count

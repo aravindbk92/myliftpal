@@ -65,14 +65,15 @@ import matplotlib.pyplot as plt
 #cv2.waitKey(1) # extra waitKey sometimes needed to close camera window
     
 #______________________________________________________________
-#frame = cv2.imread('test_data/gestures/five.jpg')
-#
-#skindetect = SkinDetect()
-#gestures = Gestures()
-#skindetect.set_skin_threshold_from_face(frame)
-#mask = skindetect.process(frame)
-#
+frame = cv2.imread('frame.jpg')
+
+skindetect = SkinDetect()
+gestures = Gestures()
+skindetect.set_skin_threshold_from_face(frame)
+mask = skindetect.process(frame)
+
 #frame, gesture = gestures.process(frame, mask)
-#
-#plt.imshow(frame)
-#cv2.imwrite('gesture.jpg', frame)
+
+masked_out = cv2.bitwise_and(frame, frame, mask=mask)
+plt.imshow(masked_out)
+cv2.imwrite('maskedout.jpg', masked_out)
