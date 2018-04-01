@@ -21,8 +21,8 @@ cv2.imshow('feed', frame)
 class Gestures:
     first_iteration=True
     finger_ct_history=[0,0]
-    finger_thresh_l=0.5
-    finger_thresh_u=1.2
+    finger_thresh_l=0.3
+    finger_thresh_u=0.8
     distance_between_fingers = 30
     area_threshold = 5000
     face_x = 0
@@ -163,9 +163,10 @@ class Gestures:
             if hand_contour is not None:
                 frame, hand_center, hand_radius = self.get_hand_center(frame, hand_contour)
                 
-                x = hand_center[0]-self.face_w/2
-                y = hand_center[1]-self.face_h/2
-                hand_mask = mask[y:y+self.face_h/2, x:x+self.face_w/2]
+                offset = int(hand_radius*2)
+                x = hand_center[0]-offset
+                y = hand_center[1]-offset
+                hand_mask = mask[y:y+offset, x:x+offset]
                 cv2.imwrite("hand_mask.jpg", hand_mask)
                 
                 frame, fingers, finger_count = self.mark_fingers(frame, hand_contour, hand_center, hand_radius)
