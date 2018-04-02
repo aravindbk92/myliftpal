@@ -5,6 +5,7 @@ import numpy as np
 from skindetect import SkinDetect
 from gestures import Gestures
 from camfeed import AndroidCamFeed
+from ar_marker import ARMarker
 
 CALIBRATION_INTERVAL = 30
 ACCUMULATION_LIMIT = 10
@@ -20,8 +21,16 @@ VIEW_RESIZE = (540,960)
 VIEW_WINDOW = 'frame'
 
 face_coords = []
+exercise_type = "deadlift" #defualt
+reps = 0
+sets = 0
+
 skindetect = None
 gestures = None
+ar_marker = None
+
+def display_text(frame, text,  color=FONT_COLOR, x_pos=TEXT_POSITION_X, y_pos=TEXT_POSITION_Y):
+    cv2.putText(frame,text,(int(x_pos*frame.shape[1]),int(y_pos*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR,FONT_THICKNESS,8)
     
 def accumulate_finger_count_from_stream(stream, prompt):
     global face_coords, skindetect, gestures
@@ -35,7 +44,7 @@ def accumulate_finger_count_from_stream(stream, prompt):
         ## Read frame
         ret, frame = stream.read()
         if ret:
-            cv2.putText(frame,prompt,(int(TEXT_POSITION_X*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR,FONT_THICKNESS,8)
+            display_text(frame, prompt)
             
             if (calibration_counter % CALIBRATION_INTERVAL == 0):
                 face_coords, success_flag = skindetect.set_skin_threshold_from_face(frame)
@@ -53,6 +62,7 @@ def accumulate_finger_count_from_stream(stream, prompt):
             frame, finger_count = gestures.get_finger_count(frame, mask, face_coords)
             
             if (finger_count != -1):
+                display_text(frame, str(finger_count), FONT_COLOR_2, TEXT_POSITION_X_2)
                 cv2.putText(frame,str(finger_count),(int(TEXT_POSITION_X_2*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR_2,FONT_THICKNESS,8)
                 finger_candidates[finger_count] += 1               
             
@@ -74,7 +84,7 @@ def wait_until_hand_is_down(stream):
     while stream.isOpened() and (hand is not None):
         ret, frame = stream.read()
         if ret:
-            cv2.putText(frame,"PUT HAND DOWN...",(int(TEXT_POSITION_X*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR,FONT_THICKNESS,8)
+            display_text(frame, "PUT HAND DOWN...",)
     
             mask = skindetect.process(frame)
                
@@ -93,7 +103,7 @@ def wait_until_calibration(stream):
         
         if ret:
             face_coords, success_flag = skindetect.set_skin_threshold_from_face(frame)
-            cv2.putText(frame,"Look at camera...",(int(TEXT_POSITION_X*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR,FONT_THICKNESS,8)
+            display_text(frame, "Look at camera...")
             frame = cv2.resize(frame, VIEW_RESIZE)
             cv2.imshow(VIEW_WINDOW, frame)
         
@@ -113,7 +123,7 @@ def wait_for_thumbs_up(stream):
         ## Read frame
         ret, frame = stream.read()
         if ret:
-            cv2.putText(frame,"SHOW THUMBS UP:",(int(TEXT_POSITION_X*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR,FONT_THICKNESS,8)
+            display_text(frame, "Was this weight ok?")
             
             if (calibration_counter % CALIBRATION_INTERVAL == 0):
                 face_coords, success_flag = skindetect.set_skin_threshold_from_face(frame)
@@ -132,7 +142,7 @@ def wait_for_thumbs_up(stream):
             
             if is_thumbsup:
                 thumbsup_accum+=1
-                cv2.putText(frame,"THUMBS UP!",(int(TEXT_POSITION_X_2*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR_2,FONT_THICKNESS,8)
+                display_text(frame, "THUMBS UP!", FONT_COLOR_2, TEXT_POSITION_X_2)
                 
             if thumbsup_accum > ACCUMULATION_LIMIT:
                 break;
@@ -142,7 +152,23 @@ def wait_for_thumbs_up(stream):
             
         if cv2.waitKey(1) == ord('q'):
             break
+
+def find_barbell_position(stream):
+    global ar_marker
+    while stream.isOpened():
+        ret, frame = stream.read()
         
+        if ret:
+            center =  ar_marker.get_marker_center()
+            if center is not False:
+                identify_exercise(frame, center)
+                return center
+            
+def identify_exercise(frame, barbell_position):
+    global exercise_type
+    if barbell_position[0] > frame.shape[0]/2:
+        exercise_type = "squat" #deadlift by default
+            
 #setup capture
 host = "10.42.0.128:8080"
 
@@ -151,6 +177,7 @@ acf = AndroidCamFeed(host)
 if (acf.isOpened()):
     gestures = Gestures()
     skindetect = SkinDetect()
+    ar_marker = ARMarker()
     
     wait_until_calibration(acf)
     
@@ -165,6 +192,17 @@ if (acf.isOpened()):
     print ("Number of sets is: ", sets)
     
     wait_until_hand_is_down(acf)
+    
+    print ("Finding initial barbell position...")
+    barbell_pos = find_barbell_position(acf)
+    
+    ### Loop for detection ###
+    
+    ### Loop for set up stage ###
+    
+    ### Loop while lifting - count reps here ###
+    
+    ## Prompt if weight was ok ###
     
     print ("Show thumbs up:")
     wait_for_thumbs_up(acf)

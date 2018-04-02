@@ -11,18 +11,18 @@ res = calibration.detect_marker(img)
 cv2.aruco.drawDetectedMarkers(img,res[0],res[1])
 plt.imshow(img)
 '''
-class Calibration:
+class ARMarker:
     dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     board = cv2.aruco.CharucoBoard_create(3,3,0.025,0.0125, dictionary)
     barbell_marker = cv2.aruco.drawMarker(dictionary, 13, 500)
     marker_length = 0.082
-    pkl_file = 'calibration/calibration_matrix.pkl'
+    pkl_file = 'data/calibration/calibration_matrix.pkl'
     
     def __init__(self):
         retval, self.cameraMatrix, self.distCoeffs, self.rvecs, self.tvecs = self.get_saved_calibration_matrix()        
         
     # dumps calibration matrix to pickle file
-    def calc_and_save_calibration_matrix(self, boards_path='/calibration/boards', out_pkl_file=pkl_file):
+    def calc_and_save_calibration_matrix(self, boards_path='data/calibration/boards', out_pkl_file=pkl_file):
         if (out_pkl_file != self.pkl_file):
             self.pkl_file = out_pkl_file
         images = glob.glob(boards_path + '/*.jpg')
@@ -78,6 +78,33 @@ class Calibration:
         
         if len(res[0]) > 0:
             return res
+        
+    # returns center of single aruco marker
+    def get_marker_center(self, frame):
+        corners, id, rejectedPts =  self.detect_marker(frame)
+        
+        p1, p2, p3, p4 = corners[0][0]
+        L1 = self.line(p1, p3)
+        L2 = self.line(p2, p4)
+        
+        return self.intersection(L1, L2)
+        
+    def line(self, p1, p2):
+        A = (p1[1] - p2[1])
+        B = (p2[0] - p1[0])
+        C = (p1[0]*p2[1] - p2[0]*p1[1])
+        return A, B, -C
+    
+    def intersection(self, L1, L2):
+        D  = L1[0] * L2[1] - L1[1] * L2[0]
+        Dx = L1[2] * L2[1] - L1[1] * L2[2]
+        Dy = L1[0] * L2[2] - L1[2] * L2[0]
+        if D != 0:
+            x = Dx / D
+            y = Dy / D
+            return x,y
+        else:
+            return False       
     # returns (rvecs, tvecs, _objPoints)
     def get_marker_pose(self, frame):
         res = self.detect_marker(frame)
