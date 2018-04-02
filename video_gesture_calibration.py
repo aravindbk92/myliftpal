@@ -20,7 +20,7 @@ cv2.namedWindow('frame')
 cv2.setMouseCallback('mask', click)
 cv2.setMouseCallback('frame', click)
 
-vidcap = cv2.VideoCapture('office_deadlift.avi')
+vidcap = cv2.VideoCapture('1.avi')
 
 skindetect = SkinDetect()
 gestures = Gestures()

@@ -21,9 +21,9 @@ cv2.imshow('feed', frame)
 class Gestures:
     first_iteration=True
     finger_ct_history=[0,0]
-    finger_thresh_l=0.3
-    finger_thresh_u=0.8
-    distance_between_fingers = 30
+    finger_thresh_l=0.5
+    finger_thresh_u=2.0
+    distance_between_fingers = 18
     area_threshold = 5000
     face_x = 0
     face_y = 0
@@ -64,8 +64,20 @@ class Gestures:
         hand = None
         if leftmost_blob_index >= 0 and leftmost_blob_index < len(contours):
             hand = contours[leftmost_blob_index]
-            cv2.drawContours(frame, [hand], 0, (0,255,0), 3)
         
+            x,y,w,h = cv2.boundingRect(hand)
+            hand_crop_width = int(self.face_w*2)
+            hand_crop_height = int(self.face_w*1.5)
+            if (h > hand_crop_height):                
+                hand_rect = np.zeros(frame.shape[:2],np.uint8)
+                hand_rect[y:y+hand_crop_height,x:x+hand_crop_width] = 255
+                hand_mask = cv2.bitwise_and(mask,mask,mask = hand_rect)
+                
+                cv2.imwrite("hand_mask.jpg", hand_mask)
+                im2, hand, hierarchy = cv2.findContours(hand_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                hand = hand[0]
+            cv2.drawContours(frame, [hand], 0, (0,255,0), 1)
+            
         return frame, hand
     
     # Finds the center of the largest circle inscribed inside the contour
@@ -146,7 +158,7 @@ class Gestures:
         
     def draw_gesture(self, img, finger_count):
         gesture_text="NUM: "+ str(finger_count)
-        cv2.putText(img,gesture_text,(int(0.56*img.shape[1]),int(0.97*img.shape[0])),cv2.FONT_HERSHEY_DUPLEX,2,(0,255,255),2,8)
+        cv2.putText(img,gesture_text,(int(0.30*img.shape[1]),int(0.97*img.shape[0])),cv2.FONT_HERSHEY_DUPLEX,2,(0,255,255),2,8)
         return img
     
     def process(self, frame, mask, face_coords):
@@ -161,13 +173,8 @@ class Gestures:
             frame, hand_contour = self.find_hand_contour(frame, mask, face_coords)
             
             if hand_contour is not None:
+                    
                 frame, hand_center, hand_radius = self.get_hand_center(frame, hand_contour)
-                
-                offset = int(hand_radius*2)
-                x = hand_center[0]-offset
-                y = hand_center[1]-offset
-                hand_mask = mask[y:y+offset, x:x+offset]
-                cv2.imwrite("hand_mask.jpg", hand_mask)
                 
                 frame, fingers, finger_count = self.mark_fingers(frame, hand_contour, hand_center, hand_radius)
                 frame = self.draw_gesture(frame,finger_count)
