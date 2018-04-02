@@ -1,79 +1,31 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr  2 03:18:06 2018
+
+@author: abk
+"""
+
 import cv2
-from skindetect import SkinDetect
-from gestures import Gestures
-from camfeed import AndroidCamFeed
+import numpy as np
 import matplotlib.pyplot as plt
+from ar_marker import ARMarker
 
-#___________________________________
-#host = "10.42.0.128:8080"
-#
-### Create new AndroidCamFeed instance
-#acf = AndroidCamFeed(host)
-#skindetect = SkinDetect()
-#gestures = Gestures()
-#
-### While camera is open
-#while acf.isOpened():
-#   ## Read frame
-#   ret, frame = acf.read()
-#   if ret:
-#       skindetect.set_skin_threshold_from_face(frame)
-#       mask = skindetect.process(frame)
-#       
-#       cv2.imshow('mask', cv2.bitwise_and(frame, frame, mask=mask))
-#       
-#       frame, gesture= gestures.process(frame, mask)
-#       
-#       cv2.imshow('feed', frame)
-# 
-#   if cv2.waitKey(1) == ord('q'):
-#       break
-#
-### Must Release ACF instance
-#acf.release()
-#cv2.destroyAllWindows()
+VIEW_RESIZE = (540,960)
+VIEW_WINDOW = 'frame'
 
-#______________________________________________________________
-# setup capture
-#camera = cv2.VideoCapture(0)
-#skindetect = SkinDetect()
-#gestures = Gestures()
-#
-## capture loop
-#while True:
-#    # get frame
-#    ret, frame = camera.read()    
-#         
-#    # mirror the frame (my camera mirrors by default)
-#    frame = cv2.flip(frame, 1)
-#    
-#    skindetect.set_skin_threshold_from_face(frame)
-#    mask = skindetect.process(frame)
-#    
-#    cv2.imshow('mask', cv2.bitwise_and(frame, frame, mask=mask))
-#       
-#    frame, gesture= gestures.process(frame, mask)
-#       
-#    cv2.imshow('feed', frame)
-#
-#    if cv2.waitKey(1) == ord('q'):
-#       break
-#    
-## clean up
-#cv2.destroyAllWindows()
-#camera.release()
-#cv2.waitKey(1) # extra waitKey sometimes needed to close camera window
+ar_marker = ARMarker()
+vidcap = cv2.VideoCapture('office_deadlift.avi')
+while (vidcap.isOpened()):
+    ## Read frame
+    vid_read_success,frame = vidcap.read()
+    center =  ar_marker.get_marker_center(frame)
+    cv2.circle(frame,center,10,(255,255,255),2)
+    frame = cv2.resize(frame, VIEW_RESIZE)
+    cv2.imshow(VIEW_WINDOW, frame)
+            
+    if cv2.waitKey(1) == ord('q'):
+        break
     
-#______________________________________________________________
-frame = cv2.imread('frame.jpg')
-
-skindetect = SkinDetect()
-gestures = Gestures()
-skindetect.set_skin_threshold_from_face(frame)
-mask = skindetect.process(frame)
-
-#frame, gesture = gestures.process(frame, mask)
-
-masked_out = cv2.bitwise_and(frame, frame, mask=mask)
-plt.imshow(masked_out)
-cv2.imwrite('maskedout.jpg', masked_out)
+vidcap.release()
+cv2.destroyAllWindows()

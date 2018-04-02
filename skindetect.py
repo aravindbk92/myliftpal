@@ -12,21 +12,23 @@ img_msk = skin_detector.process(img_col)
 '''
 class SkinDetect:
     # Lower and upper threshold for detecting skin YCrCb
-    lower_threshold = [1,100,140]
-    upper_threshold = [230,120,160]
+    lower_threshold = [10,140,100]
+    upper_threshold = [150,160,120]
+    
+    # background subtration object
+    fgbg = cv2.createBackgroundSubtractorKNN(history=10000, detectShadows=False)
     
     # Offset for YCrCb values
-    yoffset_l = 200
-    yoffset_u = 200
-    croffset_l = 10
+    yoffset_l = 100
+    yoffset_u = 100
+    croffset_l = 15
     croffset_u = 10
     cyoffset_l = 10
-    cyoffset_u = 5
-
+    cyoffset_u = 15
     
     # Ranges of values of YCrCb between which skin color can be present
-    LOWER_LIMIT = [1, 90, 140]
-    UPPER_LIMIT = [230, 125, 180]
+    LOWER_LIMIT = [10, 137, 90]
+    UPPER_LIMIT = [230, 180, 123]
     
     # Returns rectangle coordinates for largest face in image
     def face_detect(self, img):
@@ -70,7 +72,7 @@ class SkinDetect:
     # Set skin detection threshold from face
     def set_skin_threshold_from_face(self, img):        
         patch_ycrcb, face_coords, success_flag = self.get_patch_from_face(img)
-        if (success_flag):            
+        if (success_flag):
             ycrcb_min, ycrcb_max = self.get_ycrcb_min_max(patch_ycrcb)
 
             self.lower_threshold = [max((ycrcb_min[0] - self.yoffset_l),self.LOWER_LIMIT[0]), 
@@ -85,10 +87,10 @@ class SkinDetect:
         
     # Gets patch of skin from under the eyes
     def get_patch_from_face(self, img):
-        patch_size = 10
+        patch_size = int((img.shape)[1]/100)
         
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-        img_ycrcb = cv2.cvtColor(img, cv2.COLOR_RGB2YCR_CB)
+        img_ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCR_CB)
         y, cr, cb = cv2.split(img_ycrcb)
         y = clahe.apply(y)
         img_enhanced_ycrcb = cv2.merge((y,cr,cb))
@@ -140,7 +142,7 @@ class SkinDetect:
         assert isinstance(img, numpy.ndarray), 'image must be a numpy array'
         assert img.ndim == 3, 'skin detection can only work on color images'
     
-        img_ycrcb = cv2.cvtColor(img, cv2.COLOR_RGB2YCR_CB)
+        img_ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCR_CB)
         
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
         y, cr, cb = cv2.split(img_ycrcb)
@@ -158,18 +160,21 @@ class SkinDetect:
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        mask = cv2.dilate(mask,kernel,iterations = 5)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations = 2)
     
-        return mask
+        return mask    
     
-    
+    def reset_background(self):
+        self.fgbg = cv2.createBackgroundSubtractorKNN(history=10000, detectShadows=False)
+
     def process(self, img):
         assert isinstance(img, numpy.ndarray), 'image must be a numpy array'
         assert img.ndim == 3, 'skin detection can only work on color images'
     
-        mask = self.get_ycrcb_mask(img)
+        fgmask = self.fgbg.apply(img)
+        fgmask = self.closing(fgmask)
+        fgmask = cv2.bitwise_and(img, img, mask=fgmask)
+        mask = self.get_ycrcb_mask(fgmask)
     
         mask = self.closing(mask)
     
