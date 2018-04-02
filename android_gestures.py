@@ -6,121 +6,118 @@ from skindetect import SkinDetect
 from gestures import Gestures
 from camfeed import AndroidCamFeed
 
-#______________________________________________________________
+CALIBRATION_INTERVAL = 30
+ACCUMULATION_LIMIT = 10
+FONT = cv2.FONT_HERSHEY_DUPLEX
+FONT_SCALE = 2
+FONT_THICKNESS = 3
+FONT_COLOR = (0,255,0)
+TEXT_POSITION_X = 0.10
+TEXT_POSITION_Y = 0.80
+VIEW_RESIZE = (540,960)
+VIEW_WINDOW = 'frame'
+
+face_coords = []
+skindetect = None
+gestures = None
+    
+def accumulate_finger_count_from_stream(stream, prompt):
+    global face_coords, skindetect, gestures
+    
+    skindetect.reset_background()
+    
+    calibration_counter = 0
+    finger_candidates = np.array([0]*6)
+    num_fingers = -1
+    while stream.isOpened() and (num_fingers == -1):
+        ## Read frame
+        ret, frame = stream.read()
+        if ret:
+            cv2.putText(frame,prompt,(int(TEXT_POSITION_X*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR,FONT_THICKNESS,8)
+            
+            if (calibration_counter % CALIBRATION_INTERVAL == 0):
+                face_coords, success_flag = skindetect.set_skin_threshold_from_face(frame)
+                if (not success_flag):
+                    calibration_counter-=1
+    
+            mask = skindetect.process(frame)
+                    
+            if (calibration_counter %  CALIBRATION_INTERVAL == 0):        
+                gestures.set_thresholds(face_coords)
+                calibration_counter=0
+            
+            calibration_counter+=1
+               
+            frame, finger_count = gestures.get_finger_count(frame, mask, face_coords)
+            if (finger_count != -1):
+                finger_candidates[finger_count] += 1
+            
+            if (np.amax(finger_candidates) > ACCUMULATION_LIMIT):
+                num_fingers = np.argmax(finger_candidates)
+                 
+            frame = cv2.resize(frame, VIEW_RESIZE)
+            cv2.imshow(VIEW_WINDOW, frame)
+            
+        if cv2.waitKey(1) == ord('q'):
+            break
+    
+    return num_fingers
+
+def wait_until_hand_is_down(stream):
+    global face_coords, skindetect, gestures
+    
+    hand = 1
+    while stream.isOpened() and (hand is not None):
+        ret, frame = stream.read()
+        if ret:
+            cv2.putText(frame,"PUT HAND DOWN...",(int(TEXT_POSITION_X*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR,FONT_THICKNESS,8)
+    
+            mask = skindetect.process(frame)
+               
+            frame, hand = gestures.find_hand_contour(frame, mask, face_coords)
+            frame = cv2.resize(frame, VIEW_RESIZE)
+            cv2.imshow(VIEW_WINDOW, frame)
+            
+        if cv2.waitKey(1) == ord('q'):
+            break
+
+def wait_until_calibration(stream):
+    global face_coords, skindetect, gestures
+    success_flag = False
+    while stream.isOpened() and not success_flag:
+        ret, frame = stream.read()
+        
+        if ret:
+            face_coords, success_flag = skindetect.set_skin_threshold_from_face(frame)
+            cv2.putText(frame,"Look at camera...",(int(TEXT_POSITION_X*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR,FONT_THICKNESS,8)
+            frame = cv2.resize(frame, VIEW_RESIZE)
+            cv2.imshow(VIEW_WINDOW, frame)
+        
+        if cv2.waitKey(1) == ord('q'):
+            break
+        
+    gestures.set_thresholds(face_coords)
+        
 #setup capture
 host = "10.42.0.128:8080"
 
 ## Create new AndroidCamFeed instance
 acf = AndroidCamFeed(host)
 
-calibration_counter = 0
-calibration_interval = 30
-accumulation_limit = 10
-face_coords = []
 gestures = Gestures()
-
-print ("Get number of reps:")
-reps = 0
-reps_candidates = np.array([0]*6)
 skindetect = SkinDetect()
-while acf.isOpened() and (reps == 0):
-    ## Read frame
-    ret, frame = acf.read()
-    if ret:
-        cv2.putText(frame,"REPS?",(int(0.10*frame.shape[1]),int(0.80*frame.shape[0])),cv2.FONT_HERSHEY_DUPLEX,2,(0,255,0),2,8)
-        
-        if (calibration_counter % calibration_interval == 0):
-            face_coords, success_flag = skindetect.set_skin_threshold_from_face(frame)
-            if (not success_flag):
-                calibration_counter-=1
 
-        mask = skindetect.process(frame)
-                
-        if (calibration_counter %  calibration_interval == 0):        
-            gestures.set_thresholds(face_coords)
-            calibration_counter=0
-        
-        calibration_counter+=1
-           
-        frame, finger_count = gestures.process(frame, mask, face_coords)
-        if (finger_count != -1):
-            reps_candidates[finger_count] += 1
-        
-        if (np.amax(reps_candidates) > accumulation_limit):
-            reps = np.argmax(reps_candidates)
-             
-        frame = cv2.resize(frame, (540, 960))
-        cv2.imshow('frame', frame)
-        
-    if cv2.waitKey(1) == ord('q'):
-        break
-   
-print ("Number of reps: ", reps)
+wait_until_calibration(acf)
 
-hand = 1
-while acf.isOpened() and (hand is not None):
-    ret, frame = acf.read()
-    if ret:
-        cv2.putText(frame,"PUT HAND DOWN...",(int(0.10*frame.shape[1]),int(0.80*frame.shape[0])),cv2.FONT_HERSHEY_DUPLEX,2,(0,255,0),2,8)
+print ("Enter number of reps:")
+reps = accumulate_finger_count_from_stream(acf, "REPS?")
+print ("Number of reps is: ", reps)
 
-        if (calibration_counter % calibration_interval == 0):
-            face_coords, success_flag = skindetect.set_skin_threshold_from_face(frame)
-            if (not success_flag):
-                calibration_counter-=1
+wait_until_hand_is_down(acf)
 
-        mask = skindetect.process(frame)
-                
-        if (calibration_counter %  calibration_interval == 0):        
-            gestures.set_thresholds(face_coords)
-            calibration_counter=0
-        
-        calibration_counter+=1
-           
-        frame, hand = gestures.find_hand_contour(frame, mask, face_coords)
-        frame = cv2.resize(frame, (540, 960))
-        cv2.imshow('frame', frame)
-        
-    if cv2.waitKey(1) == ord('q'):
-        break        
-print ("Get number of sets:")
-sets = 0
-sets_candidates = np.array([0]*6)
-skindetect = SkinDetect()
-while acf.isOpened() and (sets == 0):
-    ## Read frame
-    ret, frame = acf.read()
-    if ret:
-        cv2.putText(frame,"SETS?",(int(0.10*frame.shape[1]),int(0.80*frame.shape[0])),cv2.FONT_HERSHEY_DUPLEX,2,(0,255,0),2,8)
-        
-        if (calibration_counter % calibration_interval == 0):
-            face_coords, success_flag = skindetect.set_skin_threshold_from_face(frame)
-            if (not success_flag):
-                calibration_counter-=1
-
-        mask = skindetect.process(frame)
-                
-        if (calibration_counter %  calibration_interval == 0):        
-            gestures.set_thresholds(face_coords)
-            calibration_counter=0
-        
-        calibration_counter+=1
-           
-        frame, finger_count = gestures.process(frame, mask, face_coords)
-        if (finger_count != -1):
-            sets_candidates[finger_count] += 1
-        
-        if (np.amax(sets_candidates) > accumulation_limit):
-            sets = np.argmax(sets_candidates)
-        
-        mask = cv2.resize(mask, (540, 960))        
-        frame = cv2.resize(frame, (540, 960))
-        #cv2.imshow('mask', cv2.bitwise_and(frame, frame, mask=mask))
-        cv2.imshow('frame', frame)
-        
-    if cv2.waitKey(1) == ord('q'):
-        break        
-
-print ("Number of sets: ", sets)
+print ("Enter number of sets:")
+sets = accumulate_finger_count_from_stream(acf, "SETS?")
+print ("Number of sets is: ", sets)
 
 # clean up
 acf.release()

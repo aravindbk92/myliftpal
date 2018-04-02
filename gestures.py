@@ -4,7 +4,6 @@
 import cv2
 import numpy as np
 import traceback
-import math
 '''
 REFERENCE: 
 https://github.com/mahaveerverma/hand-gesture-recognition-opencv
@@ -73,7 +72,6 @@ class Gestures:
                 hand_rect[y:y+hand_crop_height,x:x+hand_crop_width] = 255
                 hand_mask = cv2.bitwise_and(mask,mask,mask = hand_rect)
                 
-                cv2.imwrite("hand_mask.jpg", hand_mask)
                 im2, hand_contours, hierarchy = cv2.findContours(hand_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
                 
                 largest_cnt_area = 0
@@ -88,8 +86,6 @@ class Gestures:
                 hand = hand_contours[largest_index]
             cv2.drawContours(frame, [hand], 0, (0,255,0), 2)
         
-        if hand is None:
-            cv2.imwrite("no_contour.jpg", frame)
         return frame, hand
     
     # Finds the center of the largest circle inscribed inside the contour
@@ -172,8 +168,8 @@ class Gestures:
         gesture_text="NUM: "+ str(finger_count)
         cv2.putText(img,gesture_text,(int(0.30*img.shape[1]),int(0.80*img.shape[0])),cv2.FONT_HERSHEY_DUPLEX,2,(0,255,255),2,8)
         return img
-    
-    def process(self, frame, mask, face_coords):
+        
+    def get_finger_count(self, frame, mask, face_coords):
         finger_count = -1
         if (face_coords):
             self.face_x = face_coords[0]
@@ -197,3 +193,4 @@ class Gestures:
             return frame, -1
         
         return frame, finger_count
+        

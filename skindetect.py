@@ -15,7 +15,9 @@ class SkinDetect:
     lower_threshold = [10,140,100]
     upper_threshold = [150,160,120]
     
-    fgbg = cv2.createBackgroundSubtractorKNN(history=10000, detectShadows=False)
+    # background subtration object
+    history = 10000
+    fgbg = cv2.createBackgroundSubtractorKNN(history=history, detectShadows=False)
     
     # Offset for YCrCb values
     yoffset_l = 100
@@ -160,12 +162,12 @@ class SkinDetect:
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations = 2)
-        #kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        #mask = cv2.dilate(mask,kernel,iterations = 5)
     
-        return mask
+        return mask    
     
-    
+    def reset_background(self):
+        self.fgbg = cv2.createBackgroundSubtractorKNN(history=self.history, detectShadows=False)
+
     def process(self, img):
         assert isinstance(img, numpy.ndarray), 'image must be a numpy array'
         assert img.ndim == 3, 'skin detection can only work on color images'
