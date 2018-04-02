@@ -61,12 +61,15 @@ class Gestures:
                     distance_below_face = cy
         
         hand = None
+        hand_crop = None
         if leftmost_blob_index >= 0 and leftmost_blob_index < len(contours):
             hand = contours[leftmost_blob_index]
         
             x,y,w,h = cv2.boundingRect(hand)
             hand_crop_width = int(self.face_w*1.5)
-            hand_crop_height = int(self.face_w*1.5)
+            hand_crop_height = int(self.face_w*1.2)
+            hand_crop=np.copy(frame)
+            hand_crop = hand_crop[y:y+hand_crop_height,x:x+hand_crop_width]
             if (h > hand_crop_height):       
                 hand_rect = np.zeros(frame.shape[:2],np.uint8)
                 hand_rect[y:y+hand_crop_height,x:x+hand_crop_width] = 255
@@ -86,7 +89,7 @@ class Gestures:
                 hand = hand_contours[largest_index]
             cv2.drawContours(frame, [hand], 0, (0,255,0), 2)
         
-        return frame, hand
+        return frame, hand, hand_crop
     
     # Finds the center of the largest circle inscribed inside the contour
     # This corresponds to the centre of the palm.
@@ -108,7 +111,7 @@ class Gestures:
     
     # Using the center of palm as reference, eliminate all points 
     # from the convex hull which do not seem to be part of hand.
-    def mark_fingers(self, img,contour,center,radius):       
+    def mark_fingers(self, img,contour,center,radius, ignore_downward = True):       
         hull = cv2.convexHull(contour)
         
         finger=[(hull[0][0][0],hull[0][0][1])]
@@ -142,32 +145,14 @@ class Gestures:
                 for i in range(1,temp_len+1-5):
                     finger.remove((finger[temp_len-i][0],finger[temp_len-i][1]))
             
-            if(self.first_iteration):
-                self.finger_ct_history[0]=self.finger_ct_history[1]=len(finger)
-                self.first_iteration=False
-            else:
-                self.finger_ct_history[0]=0.34*(self.finger_ct_history[0]+self.finger_ct_history[1]+len(finger))
-        
-            if((self.finger_ct_history[0]-int(self.finger_ct_history[0]))>0.8):
-                finger_count=int(self.finger_ct_history[0])+1
-            else:
-                finger_count=int(self.finger_ct_history[0])
-        
-            self.finger_ct_history[1]=len(finger)
-        
             for k in range(len(finger)):
                 cv2.circle(img,finger[k],10,(255,255,255),2)
                 cv2.line(img,finger[k],(cx,cy),(255,255,255),2)
-            
-            return img, finger, finger_count
+
+            return img, finger, len(finger)
         
         else:
-            return img, [], 0 
-        
-    def draw_gesture(self, img, finger_count):
-        gesture_text="NUM: "+ str(finger_count)
-        cv2.putText(img,gesture_text,(int(0.30*img.shape[1]),int(0.80*img.shape[0])),cv2.FONT_HERSHEY_DUPLEX,2,(0,255,255),2,8)
-        return img
+            return img, [], 0
         
     def get_finger_count(self, frame, mask, face_coords):
         finger_count = -1
@@ -178,19 +163,43 @@ class Gestures:
             self.face_h = face_coords[3]
             
         try:
-            frame, hand_contour = self.find_hand_contour(frame, mask, face_coords)
+            frame, hand_contour, hand_crop = self.find_hand_contour(frame, mask, face_coords)
             
             if hand_contour is not None:
                     
                 frame, hand_center, hand_radius = self.get_hand_center(frame, hand_contour)
                 
                 frame, fingers, finger_count = self.mark_fingers(frame, hand_contour, hand_center, hand_radius)
-                frame = self.draw_gesture(frame,finger_count)
-        
+
         except Exception as e:
             print (e)
             traceback.print_exc()
             return frame, -1
         
         return frame, finger_count
+    
+    def is_thumbsup(self, frame, mask, face_coords):
+        finger_count = 0
+        if (face_coords):
+            self.face_x = face_coords[0]
+            self.face_y = face_coords[1]
+            self.face_w = face_coords[2]
+            self.face_h = face_coords[3]
+
+        try:
+            frame, hand_contour, hand_crop = self.find_hand_contour(frame, mask, face_coords)
+            
+            if hand_contour is not None:
+                frame, hand_center, hand_radius = self.get_hand_center(frame, hand_contour)                
+                frame, fingers, finger_count = self.mark_fingers(frame, hand_contour, hand_center, hand_radius)
+
+        except Exception as e:
+            print (e)
+            traceback.print_exc()
+            return frame, -1
+        
+        if finger_count == 1:
+            return True
+        else:
+            return False
         

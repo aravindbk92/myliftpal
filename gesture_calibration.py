@@ -62,7 +62,7 @@ while acf.isOpened():
             
             calibration_counter+=1
                
-            frame, gesture = gestures.process(frame, mask, face_coords)
+            frame, gesture = gestures.get_finger_count(frame, mask, face_coords)
             
             mask = cv2.resize(mask, (540, 960))        
             frame = cv2.resize(frame, (540, 960))

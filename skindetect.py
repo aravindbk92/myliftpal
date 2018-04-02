@@ -16,8 +16,7 @@ class SkinDetect:
     upper_threshold = [150,160,120]
     
     # background subtration object
-    history = 10000
-    fgbg = cv2.createBackgroundSubtractorKNN(history=history, detectShadows=False)
+    fgbg = cv2.createBackgroundSubtractorKNN(history=10000, detectShadows=False)
     
     # Offset for YCrCb values
     yoffset_l = 100
@@ -166,7 +165,7 @@ class SkinDetect:
         return mask    
     
     def reset_background(self):
-        self.fgbg = cv2.createBackgroundSubtractorKNN(history=self.history, detectShadows=False)
+        self.fgbg = cv2.createBackgroundSubtractorKNN(history=10000, detectShadows=False)
 
     def process(self, img):
         assert isinstance(img, numpy.ndarray), 'image must be a numpy array'
