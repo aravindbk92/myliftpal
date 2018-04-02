@@ -32,8 +32,8 @@ class Gestures:
     
     # Sets area threshold for hands from information in mask
     def set_thresholds(self, face_coords):
-        self.area_threshold = int((face_coords[2] * face_coords[3])/16)
-    
+        self.area_threshold = int((face_coords[2] * face_coords[3])/9)
+        
     # Returns the contour of the leftmost and rightmost blob (> an area threshold)
     # This corresponds to the right hand and left hand respectively
     def find_hand_contour(self, frame, mask, face_coords):
@@ -66,18 +66,30 @@ class Gestures:
             hand = contours[leftmost_blob_index]
         
             x,y,w,h = cv2.boundingRect(hand)
-            hand_crop_width = int(self.face_w*2)
+            hand_crop_width = int(self.face_w*1.5)
             hand_crop_height = int(self.face_w*1.5)
-            if (h > hand_crop_height):                
+            if (h > hand_crop_height):       
                 hand_rect = np.zeros(frame.shape[:2],np.uint8)
                 hand_rect[y:y+hand_crop_height,x:x+hand_crop_width] = 255
                 hand_mask = cv2.bitwise_and(mask,mask,mask = hand_rect)
                 
                 cv2.imwrite("hand_mask.jpg", hand_mask)
-                im2, hand, hierarchy = cv2.findContours(hand_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-                hand = hand[0]
-            cv2.drawContours(frame, [hand], 0, (0,255,0), 1)
-            
+                im2, hand_contours, hierarchy = cv2.findContours(hand_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                
+                largest_cnt_area = 0
+                largest_index = -1
+                for index, cnt in enumerate(hand_contours):
+                    area = cv2.contourArea(cnt)
+                    
+                    if area > largest_cnt_area:
+                        largest_cnt_area = area
+                        largest_index = index
+                        
+                hand = hand_contours[largest_index]
+            cv2.drawContours(frame, [hand], 0, (0,255,0), 2)
+        
+        if hand is None:
+            cv2.imwrite("no_contour.jpg", frame)
         return frame, hand
     
     # Finds the center of the largest circle inscribed inside the contour
@@ -158,7 +170,7 @@ class Gestures:
         
     def draw_gesture(self, img, finger_count):
         gesture_text="NUM: "+ str(finger_count)
-        cv2.putText(img,gesture_text,(int(0.30*img.shape[1]),int(0.97*img.shape[0])),cv2.FONT_HERSHEY_DUPLEX,2,(0,255,255),2,8)
+        cv2.putText(img,gesture_text,(int(0.30*img.shape[1]),int(0.80*img.shape[0])),cv2.FONT_HERSHEY_DUPLEX,2,(0,255,255),2,8)
         return img
     
     def process(self, frame, mask, face_coords):

@@ -15,7 +15,7 @@ class SkinDetect:
     lower_threshold = [10,140,100]
     upper_threshold = [150,160,120]
     
-    fgbg = cv2.createBackgroundSubtractorKNN(detectShadows=False)
+    fgbg = cv2.createBackgroundSubtractorKNN(history=10000, detectShadows=False)
     
     # Offset for YCrCb values
     yoffset_l = 100
@@ -71,7 +71,7 @@ class SkinDetect:
     # Set skin detection threshold from face
     def set_skin_threshold_from_face(self, img):        
         patch_ycrcb, face_coords, success_flag = self.get_patch_from_face(img)
-        if (success_flag):            
+        if (success_flag):
             ycrcb_min, ycrcb_max = self.get_ycrcb_min_max(patch_ycrcb)
 
             self.lower_threshold = [max((ycrcb_min[0] - self.yoffset_l),self.LOWER_LIMIT[0]), 
@@ -81,7 +81,7 @@ class SkinDetect:
                                     min((ycrcb_max[1] + self.croffset_u),self.UPPER_LIMIT[1]), 
                                     min((ycrcb_max[2] + self.cyoffset_u),self.UPPER_LIMIT[2])]          
             
-            print (ycrcb_min," ", ycrcb_max, " ", self.lower_threshold, " ", self.upper_threshold)
+            #print (ycrcb_min," ", ycrcb_max, " ", self.lower_threshold, " ", self.upper_threshold)
         return face_coords, success_flag
         
     # Gets patch of skin from under the eyes
