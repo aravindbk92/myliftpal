@@ -193,7 +193,7 @@ if (acf.isOpened()):
     
     wait_until_hand_is_down(acf)
     
-    print ("Finding initial barbell position...")
+    print ("Finding initial barbell position and identifying exercise...")
     barbell_pos = find_barbell_position(acf)
     
     ### Loop for detection ###
@@ -202,9 +202,7 @@ if (acf.isOpened()):
     
     ### Loop while lifting - count reps here ###
     
-    ## Prompt if weight was ok ###
-    
-    print ("Show thumbs up:")
+    print ("Is this weight ok?")
     wait_for_thumbs_up(acf)
 
 # clean up
