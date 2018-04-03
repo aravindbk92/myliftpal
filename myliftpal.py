@@ -21,9 +21,6 @@ VIEW_RESIZE = (540,960)
 VIEW_WINDOW = 'frame'
 
 face_coords = []
-exercise_type = "deadlift" #defualt
-reps = 0
-sets = 0
 
 skindetect = None
 gestures = None
@@ -151,23 +148,7 @@ def wait_for_thumbs_up(stream):
             cv2.imshow(VIEW_WINDOW, frame)
             
         if cv2.waitKey(1) == ord('q'):
-            break
-
-def find_barbell_position(stream):
-    global ar_marker
-    while stream.isOpened():
-        ret, frame = stream.read()
-        
-        if ret:
-            center =  ar_marker.get_marker_center()
-            if center is not False:
-                identify_exercise(frame, center)
-                return center
-            
-def identify_exercise(frame, barbell_position):
-    global exercise_type
-    if barbell_position[0] > frame.shape[0]/2:
-        exercise_type = "squat" #deadlift by default
+            break            
             
 #setup capture
 host = "10.42.0.128:8080"
@@ -194,16 +175,24 @@ if (acf.isOpened()):
     wait_until_hand_is_down(acf)
     
     print ("Finding initial barbell position and identifying exercise...")
-    barbell_pos = find_barbell_position(acf)
+    #display_text(frame, "Finding initial barbell position...")
+    #barbell_position, exercise = ar_marker.find_initial_barbell_position(frame)
     
     ### Loop for detection ###
+    #ar_marker.set_deadlift_rep_threshold(knee_marker_y) #Set y of knee position (so if barbell goes above knee it is counted as a rep)
     
     ### Loop for set up stage ###
     
     ### Loop while lifting - count reps here ###
+    # barbell_position = ar_marker.get_marker_center(frame)
+    # current_rep = ar_marker.count_reps(barbell_position)
+    # ar_marker.track_marker(barbell_position)
+    # ar_marker.marker_history has history of barbell positions
     
     print ("Is this weight ok?")
     wait_for_thumbs_up(acf)
+    
+    ar_marker.reset()
 
 # clean up
 acf.release()

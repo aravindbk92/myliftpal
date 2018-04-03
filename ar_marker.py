@@ -18,6 +18,19 @@ class ARMarker:
     marker_length = 0.082
     pkl_file = 'data/calibration/calibration_matrix.pkl'
     
+    exercise_type = "deadlift" #defualt
+    reps = 0
+    sets = 0
+    current_rep = 0
+    
+    initial_barbell_position = None
+    deadlift_rep_threshold = None
+    squat_rep_threshold = None
+    rep_count_flag = False
+    
+    marker_history = []
+    history_length = 100
+    
     def __init__(self):
         retval, self.cameraMatrix, self.distCoeffs, self.rvecs, self.tvecs = self.get_saved_calibration_matrix()        
         
@@ -104,8 +117,68 @@ class ARMarker:
             y = Dy / D
             return x,y
         else:
-            return False       
+            return False
+        
     # returns (rvecs, tvecs, _objPoints)
     def get_marker_pose(self, frame):
         res = self.detect_marker(frame)
         return cv2.aruco.estimatePoseSingleMarkers(res[0], self.marker_length, self.cameraMatrix, self.distCoeffs)
+    
+    def find_initial_barbell_position(self, frame):
+        center =  self.get_marker_center(frame)
+        if center is not False:
+            self.identify_exercise(frame, center)
+            self.initial_barbell_position = center
+            return self.initial_barbell_position, self.exercise_type
+        else:
+            return False
+                
+    def identify_exercise(self, frame, barbell_position):
+        if barbell_position[1] < frame.shape[0]/2:
+            self.exercise_type = "squat"
+        else:
+            self.exercise_type = "deadlift"
+            
+    def count_reps(self, barbell_position):        
+        if (self.exercise_type == 'deadlift'):
+            if barbell_position[1] < self.deadlift_rep_threshold:
+                if self.rep_count_flag == False:
+                    self.current_rep+=1
+                    self.rep_count_flag=True
+            else:
+                self.rep_count_flag=False
+        elif (self.exercise_type == 'squat'):
+            if barbell_position[1] < self.squat_rep_threshold:
+                if self.rep_count_flag == False:
+                    self.current_rep+=1
+                    self.rep_count_flag=True
+            else:
+                self.rep_count_flag=False
+                
+        return self.current_rep
+                
+    def reset(self):        
+        self.exercise_type = "deadlift" #default
+        self.reps = 0
+        self.sets = 0
+        self.current_rep = 0
+        
+        self.initial_barbell_position = None
+        self.barbell_position = None
+        self.deadlift_rep_threshold = None
+        self.squat_rep_threshold = None
+        self.rep_count_flag = False
+        
+        self.track_marker_array = []
+        
+    def set_deadlift_rep_threshold(self, threshold_y):        
+        self.deadlift_rep_threshold = threshold_y
+        
+    def set_squat_rep_threshold(self, threshold_y):        
+        self.squat_rep_threshold = threshold_y
+        
+    def track_marker(self, barbell_position):
+        if (len(self.marker_history) >= self.history_length):
+            self.marker_history.pop(0)
+        self.marker_history.append(barbell_position)
+        
