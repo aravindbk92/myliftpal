@@ -117,6 +117,9 @@ class Skeleton:
             if(current.distance(self.kneePos)<self.minDistance):
                 self.kneePos = current
                 continue
+            elif(cy>self.hipPos.y+10 and cy<self.footPos.y-5):
+                self.kneePos = current
+                continue
             if(current.distance(self.footPos)<self.minDistance):
                 self.footPos = current
                 continue
@@ -148,14 +151,14 @@ class Skeleton:
         for ball in self.spinePos:
             if(ball.x != 0 and ball.y != 0):
                 if(cnt != 0):
-                    cv2.line(img,(last.x - self.offSetDisplay,last.y),(ball.x - self.offSetDisplay,ball.y),(255,0,0),5)
+                    cv2.line(img,(last.x,last.y),(ball.x,ball.y),(255,0,0),5)
                 last.x = ball.x
                 last.y = ball.y
                 cnt += 1
         if(self.sholderPos.x != 0 and self.sholderPos.y != 0):                
-            cv2.line(img,(self.sholderPos.x,self.sholderPos.y),(last.x - self.offSetDisplay,last.y),(255,0,0),5)
+            cv2.line(img,(self.sholderPos.x,self.sholderPos.y),(last.x ,last.y),(255,0,0),5)
         if(self.hipPos.x != 0 and self.hipPos.y != 0):
-            cv2.line(img,(self.hipPos.x,self.hipPos.y),(self.spinePos[0].x - self.offSetDisplay,self.spinePos[0].y),(255,0,0),5)
+            cv2.line(img,(self.hipPos.x,self.hipPos.y),(self.spinePos[0].x,self.spinePos[0].y),(255,0,0),5)
         if(self.kneePos.x != 0 and self.kneePos.y != 0):
             cv2.line(img,(self.hipPos.x,self.hipPos.y),(self.kneePos.x ,self.kneePos.y),(255,0,0),5)
         if(self.footPos.x != 0 and self.footPos.y != 0):
