@@ -187,6 +187,8 @@ if (acf.isOpened()):
     # barbell_position = ar_marker.get_marker_center(frame)
     # current_rep = ar_marker.count_reps(barbell_position)
     # ar_marker.track_marker(barbell_position)
+    # for pos in ar_marker.marker_history:
+    #    cv2.circle(frame,pos,5,(0,255,0),3)
     # ar_marker.marker_history has history of barbell positions
     
     print ("Is this weight ok?")
