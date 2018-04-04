@@ -28,8 +28,10 @@ class ARMarker:
     squat_rep_threshold = None
     rep_count_flag = False
     
-    marker_history = []
+    marker_history = [0,0]
     history_length = 100
+    
+    prev_center = None
     
     def __init__(self):
         retval, self.cameraMatrix, self.distCoeffs, self.rvecs, self.tvecs = self.get_saved_calibration_matrix()        
@@ -94,13 +96,26 @@ class ARMarker:
         
     # returns center of single aruco marker
     def get_marker_center(self, frame):
-        corners, id, rejectedPts =  self.detect_marker(frame)
+        x,y = 0
+        
+        if self.prev_center != [0,0]:
+            if not (self.prev_center[0]-50 < 0 or self.prev_center[1]>frame.shape[1]):
+                x = self.prev_center[0]-50
+                y = self.prev_center[1]-50
+                frame = frame[y:y+50, x:x+50]
+                
+        try:
+            corners, idx, rejectedPts =  self.detect_marker(frame)
+        except:
+            return self.prev_center
         
         p1, p2, p3, p4 = corners[0][0]
         L1 = self.line(p1, p3)
         L2 = self.line(p2, p4)
-        
-        return self.intersection(L1, L2)
+                
+        center = self.intersection(L1, L2)
+        self.prev_center = [x+center[0], y+center[1]]
+        return self.prev_center
         
     def line(self, p1, p2):
         A = (p1[1] - p2[1])
