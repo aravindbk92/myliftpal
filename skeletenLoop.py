@@ -3,6 +3,7 @@ import numpy as np
 from skeleten import Skeleton
 from ar_marker import ARMarker
 from Point import point
+import simpleaudio as sa
 
 FONT = cv2.FONT_HERSHEY_DUPLEX
 FONT_SCALE = 2
@@ -40,6 +41,8 @@ out = cv2.VideoWriter('metric.avi',fourcc,30,(540, 960))
 
 ar_marker = ARMarker()
 isFirst = True
+liftingStage = True
+setUpStage = True
 while(cap.isOpened()):
     ret, frame = cap.read()
     
@@ -65,10 +68,18 @@ while(cap.isOpened()):
     #cv2.drawContours(labeled_frame, contours, -1, (255,255,255), 1)
     
     if(not skeleton.setup_metrics(labeled_frame,barbellPt)):
-        cv2.putText(frame,'Setup Stage',(int(TEXT_POSITION_X_2*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR_2,FONT_THICKNESS,8)    
+        cv2.putText(frame,'Setup Stage',(int(TEXT_POSITION_X_2*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR_2,FONT_THICKNESS,8)
+        if(setUpStage):
+            setUpStage = False
+            wave_obj = sa.WaveObject.from_wave_file("audio/setup.wav")
+            play_obj = wave_obj.play()
     else:
         skeleton.lifting_metrics(labeled_frame,barbellPt)
         cv2.putText(frame,'Lifting Stage',(int(TEXT_POSITION_X_2*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR_2,FONT_THICKNESS,8)
+        if(liftingStage):
+            liftingStage = False
+            wave_obj = sa.WaveObject.from_wave_file("audio/lift.wav")
+            play_obj = wave_obj.play()
 
     
     mask = cv2.resize(mask, (540, 960))        
