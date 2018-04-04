@@ -31,7 +31,7 @@ class ARMarker:
     marker_history = [0,0]
     history_length = 100
     
-    prev_center = None
+    prev_center = [0,0]
     
     def __init__(self):
         retval, self.cameraMatrix, self.distCoeffs, self.rvecs, self.tvecs = self.get_saved_calibration_matrix()        
@@ -96,13 +96,12 @@ class ARMarker:
         
     # returns center of single aruco marker
     def get_marker_center(self, frame):
-        x,y = 0
-        
-        if self.prev_center != [0,0]:
-            if not (self.prev_center[0]-50 < 0 or self.prev_center[1]>frame.shape[1]):
-                x = self.prev_center[0]-50
-                y = self.prev_center[1]-50
-                frame = frame[y:y+50, x:x+50]
+        x = 0
+        y = 0
+        if (self.prev_center[0] != 0 and self.prev_center[1] != 0):        
+            x = int(self.prev_center[0]-200)
+            y = int(self.prev_center[1]-200)
+            frame = frame[y:y+400, x:x+400]
                 
         try:
             corners, idx, rejectedPts =  self.detect_marker(frame)

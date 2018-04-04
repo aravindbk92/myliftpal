@@ -2,6 +2,10 @@ from Point import point
 import numpy as np
 import cv2
 import math
+import simpleaudio as sa
+
+
+
 
 class Skeleton:
     
@@ -18,11 +22,22 @@ class Skeleton:
         self.offSetDisplay =40
         self.minDistance = 37
         self.startingLocation = point(5000,5000)        
-        self.setUpkneeAngle = 85
+        self.setUpkneeAngle = 88
         self.setupHipAngle = 110
         self.setupSholderAngle = 85
-        self.triArea = 1500
+        self.triArea = 1700
         self.tracking = False
+        self.liftingStage = 0
+        self.barbell_count = 0
+        self.barbell_start = False
+        self.hip_count = 0
+        self.hip_start = False
+        self.knee_count = 0
+        self.knee_start = False
+        self.upperback_count = 0
+        self.upperback_start = False
+        self.lowerback_count = 0
+        self.lowerback_start = False
     
     def detect_sholder(self, img, contour):
         cnt = contour
@@ -103,12 +118,34 @@ class Skeleton:
             self.footPos.y = cy
             cv2.putText(img, 'knee', (self.footPos.x,self.footPos.y) , cv2.FONT_HERSHEY_SIMPLEX, 1,(255,255,255),10)
         return img, contour
+        
+    def hip_dif_angle(self, img):
+        
+        return True
     
-    def setup_metrics(self, img):
+    def setup_metrics(self, img,barbell):
         if(not self.tracking):
             return False
         else:
-            return (self.hip_angle(img) and self.knee_angle(img) and self.upperback_pos(img) and self.lowerback_pos(img) )   
+            if(self.liftingStage>45):
+                return True
+            a = self.hip_angle(img) 
+            b = self.knee_angle(img) 
+            c = self.upperback_pos(img) 
+            d = self.lowerback_pos(img) 
+            e = self.barbell_placement(img,barbell)
+            if (a and b and c and d and e):
+                self.liftingStage += 1
+            return(self.liftingStage>45)
+            
+    def lifting_metrics(self, img,barbellPt):
+        if(not self.tracking):
+            return False
+        else:
+            a = self.barbell_placement(img,barbellPt)
+            c = self.upperback_pos(img) 
+            d = self.lowerback_pos(img) 
+            return(c and d)
 
     def tracker(self,img,countour):
         for cnt in countour:
@@ -172,17 +209,37 @@ class Skeleton:
         
     
     
-    def barbell_placement(self):
-        
-        return True
+    def barbell_placement(self,img,barbell):
+        centerPnt = int((self.hipPos.x + self.footPos.x)/2)-75   
+        if (centerPnt+100>barbell.x and centerPnt-100<barbell.x):
+            cv2.circle(img, (barbell.x,barbell.y) , 25,(0,255,0),-1)
+            self.barbell_count = 0
+            self.barbell_start = True
+            return True
+        else:
+            cv2.circle(img, (barbell.x,barbell.y) , 25,(0,0,255),-1)
+            self.barbell_count += 1
+            if(self.barbell_count > 40 and self.barbell_start):         
+                wave_obj = sa.WaveObject.from_wave_file("audio/barbell.wav")
+                play_obj = wave_obj.play()
+                self.barbell_count = 0
+            return False
+            
         
     def knee_angle(self, img):
         kneeAngle = self.angle(self.hipPos,self.kneePos,self.footPos)
         if(kneeAngle < self.setUpkneeAngle+10 and kneeAngle > self.setUpkneeAngle-10):
             cv2.circle(img, (self.kneePos.x,self.kneePos.y) , 25,(0,255,0),-1)
+            self.knee_count = 0
+            self.knee_start = True
             return True
         else:
             cv2.circle(img, (self.kneePos.x,self.kneePos.y) , 25,(0,0,255),-1)
+            self.knee_count += 1
+            if(self.knee_count > 60 and self.knee_start):         
+                wave_obj = sa.WaveObject.from_wave_file("audio/knees.wav")
+                play_obj = wave_obj.play()
+                self.knee_count = 0
             return False
         
     def hip_angle(self, img):
@@ -192,27 +249,48 @@ class Skeleton:
         #cv2.putText(img, str(hipAngle), (self.hipPos.x+100,self.hipPos.y+100) , cv2.FONT_HERSHEY_SIMPLEX, 1,(255,255,255),10)
         if(hipAngle < self.setupHipAngle+10 and hipAngle > self.setupHipAngle-10):
             cv2.circle(img, (self.hipPos.x,self.hipPos.y) , 25,(0,255,0),-1)
+            self.hip_count = 0
+            self.hip_start = True
             return True
         else:
             cv2.circle(img, (self.hipPos.x,self.hipPos.y) , 25,(0,0,255),-1)
+            self.hip_count += 1
+            if(self.hip_count > 60 and self.hip_start):         
+                wave_obj = sa.WaveObject.from_wave_file("audio/hips.wav")
+                play_obj = wave_obj.play()
+                self.hip_count = 0
             return False
     
     def upperback_pos(self,img):
         sholderAngle = self.angle(self.sholderPos,self.spinePos[3],self.spinePos[2])
         if(sholderAngle < self.setupSholderAngle+10 and sholderAngle > self.setupSholderAngle-10):
             cv2.circle(img, (self.sholderPos.x,self.sholderPos.y) , 25,(0,255,0),-1)
+            self.upperback_count = 0
+            self.upperback_start = True
             return True
         else:
             cv2.circle(img, (self.sholderPos.x,self.sholderPos.y) , 25,(0,0,255),-1)
+            self.upperback_count += 1
+            if(self.upperback_count > 60 and self.upperback_start):         
+                wave_obj = sa.WaveObject.from_wave_file("audio/sholder.wav")
+                play_obj = wave_obj.play()
+                self.upperback_count = 0
             return False
         
     def lowerback_pos(self,img):
         backPos = self.tri_area(self.spinePos[0],self.spinePos[1],self.spinePos[3])
         if(backPos < self.triArea):
             cv2.line(img,(self.spinePos[3].x,self.spinePos[3].y),(self.spinePos[0].x,self.spinePos[0].y),(0,255,0),15)
+            self.lowerback_count = 0
+            self.lowerback_start = True
             return True
         else:
             cv2.line(img,(self.spinePos[3].x,self.spinePos[3].y),(self.spinePos[0].x,self.spinePos[0].y),(0,0,255),15)
+            self.lowerback_count += 1
+            if(self.lowerback_count > 60 and self.lowerback_start):         
+                wave_obj = sa.WaveObject.from_wave_file("audio/lowerBack.wav")
+                play_obj = wave_obj.play()
+                self.lowerback_count = 0
             return False
         
         

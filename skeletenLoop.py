@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
 from skeleten import Skeleton
-
+from ar_marker import ARMarker
+from Point import point
 
 FONT = cv2.FONT_HERSHEY_DUPLEX
 FONT_SCALE = 2
@@ -34,9 +35,22 @@ def apply_mask(frame):
 skeleton = Skeleton()
 
 cap = cv2.VideoCapture('test_data/markers/2.avi')
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
+out = cv2.VideoWriter('metric.avi',fourcc,30,(540, 960))
 
+ar_marker = ARMarker()
+isFirst = True
 while(cap.isOpened()):
     ret, frame = cap.read()
+    
+    if(not ret):
+        continue
+      
+    barbell_position = ar_marker.get_marker_center(frame)      
+    
+    barbellPt = point(int(barbell_position[0]),int(barbell_position[1]))
+    
+      
     
     mask = apply_mask(frame)    
     
@@ -48,15 +62,18 @@ while(cap.isOpened()):
     labeled_frame = skeleton.draw_skeleton(labeled_frame)    
     
     #draw all contours in the the frame so they are visible
-    cv2.drawContours(labeled_frame, contours, -1, (255,255,255), 1)
+    #cv2.drawContours(labeled_frame, contours, -1, (255,255,255), 1)
     
-    if(not skeleton.setup_metrics(labeled_frame)):
+    if(not skeleton.setup_metrics(labeled_frame,barbellPt)):
         cv2.putText(frame,'Setup Stage',(int(TEXT_POSITION_X_2*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR_2,FONT_THICKNESS,8)    
     else:
+        skeleton.lifting_metrics(labeled_frame,barbellPt)
         cv2.putText(frame,'Lifting Stage',(int(TEXT_POSITION_X_2*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR_2,FONT_THICKNESS,8)
+
     
-    mask = cv2.resize(mask, (540, 700))        
-    labeled_frame = cv2.resize(labeled_frame, (540, 700))
+    mask = cv2.resize(mask, (540, 960))        
+    labeled_frame = cv2.resize(labeled_frame, (540, 960))
+    out.write(labeled_frame)
     cv2.imshow('mask_ycrcb', cv2.bitwise_and(labeled_frame, labeled_frame, mask=mask))
     cv2.imshow('frame',labeled_frame)
     # exit on ESC press
