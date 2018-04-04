@@ -2,6 +2,16 @@ import cv2
 import numpy as np
 from skeleten import Skeleton
 
+
+FONT = cv2.FONT_HERSHEY_DUPLEX
+FONT_SCALE = 2
+FONT_THICKNESS = 3
+FONT_COLOR = (0,255,0)
+FONT_COLOR_2 = (0,255,255)
+TEXT_POSITION_X = 0.10
+TEXT_POSITION_X_2 = 0.60
+TEXT_POSITION_Y = 0.80
+
 lower_threshold_ycrcb = [1, 60, 120]
 upper_threshold_ycrcb = [200, 118, 135]
 
@@ -39,6 +49,11 @@ while(cap.isOpened()):
     
     #draw all contours in the the frame so they are visible
     cv2.drawContours(labeled_frame, contours, -1, (255,255,255), 1)
+    
+    if(not skeleton.setup_metrics(labeled_frame)):
+        cv2.putText(frame,'Setup Stage',(int(TEXT_POSITION_X_2*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR_2,FONT_THICKNESS,8)    
+    else:
+        cv2.putText(frame,'Lifting Stage',(int(TEXT_POSITION_X_2*frame.shape[1]),int(TEXT_POSITION_Y*frame.shape[0])),FONT,FONT_SCALE,FONT_COLOR_2,FONT_THICKNESS,8)
     
     mask = cv2.resize(mask, (540, 700))        
     labeled_frame = cv2.resize(labeled_frame, (540, 700))
