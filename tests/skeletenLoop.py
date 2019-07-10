@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
-from skeleten import Skeleton
-from ar_marker import ARMarker
-from Point import point
+from libs.skeleton import Skeleton
+from libs.ar_marker import ARMarker
+from libs.Point import point
 import simpleaudio as sa
 
 FONT = cv2.FONT_HERSHEY_DUPLEX
@@ -35,7 +35,7 @@ def apply_mask(frame):
     
 skeleton = Skeleton()
 
-cap = cv2.VideoCapture('test_data/markers/2.avi')
+cap = cv2.VideoCapture('../test_data/markers/2.avi')
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter('metric.avi',fourcc,30,(540, 960))
 

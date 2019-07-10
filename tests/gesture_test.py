@@ -1,8 +1,9 @@
 2#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import cv2
-from skindetect import SkinDetect
-from gestures import Gestures
+from libs.skindetect import SkinDetect
+from libs.gestures import Gestures
+from libs.camfeed import AndroidCamFeed
 import numpy as np
 
 pause = False
@@ -20,23 +21,26 @@ cv2.namedWindow('frame')
 cv2.setMouseCallback('mask', click)
 cv2.setMouseCallback('frame', click)
 
-vidcap = cv2.VideoCapture('1.avi')
+#______________________________________________________________
+#setup capture
+host = "10.42.0.128:8080"
 
+## Create new AndroidCamFeed instance
+acf = AndroidCamFeed(host)
 skindetect = SkinDetect()
 gestures = Gestures()
 
 calibration_counter = 0
 calibration_interval = 30
 face_coords = []
-
 # capture loop
-while (vidcap.isOpened()):
-    ## Read frame
-    if not pause:
-        vid_read_success,frame = vidcap.read()
-       
+while acf.isOpened():
+    
+    if not pause:    
+        ## Read frame
+        ret, frame = acf.read()
         backup=np.copy(frame)
-        if vid_read_success:
+        if ret:
             success = False
             if (calibration_counter % calibration_interval == 0):
                 face_coords, success_flag = skindetect.set_skin_threshold_from_face(frame)
@@ -45,7 +49,7 @@ while (vidcap.isOpened()):
                 else:
                     cv2.imwrite("frame.jpg", backup)
                     success = True
-            
+    
             mask = skindetect.process(frame)
             
             if (success):
@@ -57,7 +61,7 @@ while (vidcap.isOpened()):
             
             calibration_counter+=1
                
-            frame, gesture = gestures.process(frame, mask, face_coords)
+            frame, gesture = gestures.get_finger_count(frame, mask, face_coords)
             
             mask = cv2.resize(mask, (540, 960))        
             frame = cv2.resize(frame, (540, 960))
@@ -66,7 +70,10 @@ while (vidcap.isOpened()):
 
     if cv2.waitKey(1) == ord('q'):
        break
+   
     if cv2.waitKey(1) == ord('w'):
        pause = False
-
+    
+# clean up
+acf.release()
 cv2.destroyAllWindows()

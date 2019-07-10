@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import cv2
-from skeleton_detect import SkeletonDetect
-from camfeed import AndroidCamFeed
-import matplotlib.pyplot as plt
+from libs.skeleton_detect import SkeletonDetect
+from libs.camfeed import AndroidCamFeed
 
 #______________________________________________________________
 #setup capture

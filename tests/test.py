@@ -7,15 +7,13 @@ Created on Mon Apr  2 03:18:06 2018
 """
 
 import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-from ar_marker import ARMarker
+from libs.ar_marker import ARMarker
 
 VIEW_RESIZE = (540,960)
 VIEW_WINDOW = 'frame'
 
 ar_marker = ARMarker()
-vidcap = cv2.VideoCapture('test_data/office_deadlift.avi')
+vidcap = cv2.VideoCapture('../test_data/office_deadlift.avi')
 first = True
 while (vidcap.isOpened()):
     ## Read frame

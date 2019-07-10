@@ -1,11 +1,7 @@
-from Point import point
-import numpy as np
+from .Point import point
 import cv2
 import math
 import simpleaudio as sa
-
-
-
 
 class Skeleton:
     

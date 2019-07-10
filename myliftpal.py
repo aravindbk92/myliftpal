@@ -2,13 +2,12 @@
 # -*- coding: utf-8 -*-
 import cv2
 import numpy as np
-from skindetect import SkinDetect
-from gestures import Gestures
-from camfeed import AndroidCamFeed
-from ar_marker import ARMarker
-from skeleten import Skeleton
-from ar_marker import ARMarker
-from Point import point
+from libs.skindetect import SkinDetect
+from libs.gestures import Gestures
+from libs.camfeed import AndroidCamFeed
+from libs.skeleton import Skeleton
+from libs.ar_marker import ARMarker
+from libs.Point import point
 import simpleaudio as sa
 
 CALIBRATION_INTERVAL = 30
